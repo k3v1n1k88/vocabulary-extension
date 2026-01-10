@@ -1,0 +1,180 @@
+Giai đoạn 1: Thiết lập & Chức năng cơ bản (Ngày 1-10)
+Mục tiêu: Xây dựng hạ tầng cơ bản và tính năng dịch thuật đơn giản.
+
+Ngày 1-2: Thiết lập dự án cơ bản
+
+Tạo cấu trúc thư mục dự án
+Thiết lập môi trường phát triển
+Chọn các thư viện và công nghệ phụ thuộc
+
+
+Ngày 3: Cấu hình manifest
+
+Tạo và cấu hình file manifest.json
+Thiết lập các quyền cần thiết
+Cài đặt background và content scripts
+
+
+Ngày 4-6: Text selection & popup cơ bản
+
+Phát hiện text được chọn trên trang web
+Hiển thị popup đơn giản với các tùy chọn cơ bản
+Xử lý sự kiện người dùng
+
+
+Ngày 7-8: Tích hợp API dịch cơ bản
+
+Kết nối với ít nhất một API dịch (Google Translate hoặc tương tự)
+Xử lý kết quả dịch và hiển thị trong popup
+Tự động phát hiện ngôn ngữ nguồn
+
+
+Ngày 9-10: Lưu trữ từ đơn giản
+
+Thiết kế cơ sở dữ liệu đơn giản
+Lưu trữ từ đã dịch vào local storage
+Hiển thị danh sách từ đã lưu
+
+
+
+Giai đoạn 2: Quản lý từ điển (Ngày 11-18)
+Mục tiêu: Hoàn thiện tính năng quản lý từ vựng và nâng cao trải nghiệm dịch.
+
+Ngày 11-12: Thiết kế UI popup dịch nâng cao
+
+Cải thiện giao diện popup dịch
+Hiển thị thêm thông tin (phát âm, ví dụ, v.v.)
+Thêm các tùy chọn tùy chỉnh
+
+
+Ngày 13-15: Quản lý danh sách từ
+
+Tạo trang quản lý từ vựng
+Thêm các chức năng chỉnh sửa, xóa, phân loại từ
+Tìm kiếm và lọc danh sách từ
+
+
+Ngày 16-17: Tích hợp nhiều nguồn từ điển
+
+Kết nối với các nguồn từ điển khác nhau
+So sánh và hiển thị kết quả từ nhiều nguồn
+Cải thiện xử lý ngữ nghĩa
+
+
+Ngày 18-19: Highlight từ đã lưu
+
+Phát hiện và highlight các từ đã lưu trên trang web
+Tùy chọn bật/tắt tính năng highlight
+Xử lý hiệu suất khi có nhiều từ
+
+
+
+Giai đoạn 3: Thông báo & Ôn tập (Ngày 20-27)
+Mục tiêu: Xây dựng hệ thống thông báo và ôn tập.
+
+Ngày 20-21: Hệ thống nhắc nhở cơ bản
+
+Thiết lập hệ thống thông báo
+Lập lịch nhắc nhở đơn giản
+Hiển thị thông báo cơ bản
+
+
+Ngày 22-23: Cấu hình thời gian nhắc
+
+Tạo giao diện cấu hình thông báo
+Cho phép người dùng tùy chỉnh khoảng thời gian
+Lưu trữ thiết lập người dùng
+
+
+Ngày 24-25: Tương tác thông báo
+
+Thêm tùy chọn tương tác trên thông báo
+Xử lý phản hồi "Đã ghi nhớ"/"Nhắc lại"
+Cập nhật trạng thái học tập
+
+
+Ngày 26-28: Flashcards đơn giản
+
+Tạo trang flashcards cơ bản
+Hiển thị từ và định nghĩa
+Triển khai logic ôn tập đơn giản
+
+
+
+Giai đoạn 4: Hoàn thiện & Tối ưu (Ngày 28-31)
+Mục tiêu: Hoàn thiện sản phẩm và chuẩn bị phát hành.
+
+Ngày 28-29: Cải thiện UI/UX
+
+Áp dụng thiết kế nhất quán
+Cải thiện trải nghiệm người dùng
+Thêm animation và transitions
+
+
+Ngày 29-30: Đồng bộ dữ liệu cơ bản
+
+Triển khai đồng bộ dữ liệu qua Chrome Sync
+Đảm bảo an toàn dữ liệu
+Xử lý xung đột đồng bộ
+
+
+Ngày 30-31: Testing & Bug fixes
+
+Kiểm thử trên nhiều trang web
+Sửa lỗi và tối ưu code
+Kiểm tra tương thích với các phiên bản Chrome
+
+
+Ngày 31: Tối ưu hiệu năng & Chuẩn bị phát hành
+
+Tối ưu hiệu suất và giảm tài nguyên sử dụng
+Hoàn thiện documentation
+Chuẩn bị các tài liệu cho Chrome Web Store
+
+
+
+Các ưu tiên và mục tiêu dự án
+Ưu tiên hàng đầu (P0)
+
+Tính năng chọn và dịch từ/đoạn văn
+Lưu trữ từ vựng cơ bản
+Hiệu suất và độ ổn định của extension
+
+Ưu tiên cao (P1)
+
+Quản lý danh sách từ
+Hệ thống thông báo cơ bản
+Highlight từ đã lưu
+
+Ưu tiên trung bình (P2)
+
+Flashcards đơn giản
+Tích hợp nhiều nguồn từ điển
+Cấu hình thông báo nâng cao
+
+Ưu tiên thấp (có thể làm sau nếu còn thời gian)
+
+Đồng bộ dữ liệu nâng cao
+Tùy chỉnh giao diện
+Ôn tập theo spaced repetition
+
+Lưu ý và giải pháp kỹ thuật
+Hiệu năng
+
+Sử dụng lazy loading cho các tính năng không thiết yếu
+Tối ưu selector và DOM manipulation
+Xây dựng hệ thống cache cho kết quả dịch
+
+Khả năng mở rộng
+
+Thiết kế cấu trúc module để dễ dàng thêm tính năng mới
+Xây dựng API wrapper cho việc thay đổi nguồn dịch
+Sử dụng design pattern phù hợp (Factory, Observer)
+
+Trải nghiệm người dùng
+
+Phản hồi tức thì khi tương tác
+Tối ưu trải nghiệm trên các trang phổ biến
+Hạn chế can thiệp vào DOM của trang
+
+Theo lộ trình này, bạn sẽ có một phiên bản hoạt động với các tính năng cốt lõi trong khoảng 2-3 tuần đầu, và dành thời gian còn lại để hoàn thiện, tối ưu hiệu năng và chuẩn bị phát hành sản phẩm.

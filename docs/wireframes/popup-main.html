@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=420, initial-scale=1.0">
+  <title>Vocabulary Extension - Main Popup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwindcss.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              200: '#BFDBFE',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+            },
+            success: { 500: '#22C55E', 600: '#16A34A' },
+            streak: { 500: '#F97316', 600: '#EA580C' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Popup Container */
+    body {
+      width: 420px;
+      max-height: 600px;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Flashcard Flip Animation */
+    .flashcard { perspective: 1000px; }
+    .flashcard-inner {
+      transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back { backface-visibility: hidden; }
+    .flashcard-back { transform: rotateY(180deg); }
+
+    /* Tab Content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Streak Pulse */
+    @keyframes streak-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .streak-icon { animation: streak-pulse 2s ease-in-out infinite; }
+
+    /* Custom Scrollbar */
+    .scroll-area::-webkit-scrollbar { width: 6px; }
+    .scroll-area::-webkit-scrollbar-track { background: #F3F4F6; border-radius: 3px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+    .scroll-area::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- Main Container -->
+  <div class="flex flex-col h-[600px]">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+      <div class="flex items-center gap-2">
+        <!-- Logo -->
+        <svg class="w-8 h-8 text-primary-500" viewBox="0 0 32 32" fill="currentColor">
+          <rect x="4" y="6" width="24" height="20" rx="2" fill="currentColor" opacity="0.2"/>
+          <path d="M8 10h16M8 14h12M8 18h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="text-lg font-semibold text-gray-800">Vocabulary</span>
+      </div>
+
+      <!-- Settings Button -->
+      <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="flex bg-white border-b border-gray-200 px-4">
+      <button onclick="switchTab('dashboard')" class="tab-btn px-4 py-3 text-sm font-medium text-primary-500 border-b-2 border-primary-500 transition-colors duration-200" data-tab="dashboard">
+        Dashboard
+      </button>
+      <button onclick="switchTab('study')" class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-colors duration-200" data-tab="study">
+        Study
+      </button>
+      <button onclick="switchTab('vocabulary')" class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-colors duration-200" data-tab="vocabulary">
+        Vocabulary
+      </button>
+    </nav>
+
+    <!-- Tab Content Area -->
+    <main class="flex-1 overflow-hidden">
+
+      <!-- Dashboard Tab -->
+      <section id="dashboard" class="tab-content active h-full overflow-y-auto scroll-area p-4 space-y-4">
+
+        <!-- Streak Card -->
+        <div class="bg-gradient-to-r from-streak-500 to-orange-400 rounded-lg p-4 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium opacity-90">Current Streak</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-3xl font-bold">7</span>
+                <span class="text-sm opacity-80">days</span>
+              </div>
+            </div>
+            <svg class="w-12 h-12 streak-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 23c-3.866 0-7-3.134-7-7 0-2.577 1.409-4.837 3.5-6.038V5c0-1.105.895-2 2-2h3c1.105 0 2 .895 2 2v4.962c2.091 1.201 3.5 3.461 3.5 6.038 0 3.866-3.134 7-7 7z"/>
+              <path d="M12 18a3 3 0 100-6 3 3 0 000 6z" fill="rgba(255,255,255,0.3)"/>
+            </svg>
+          </div>
+          <p class="text-xs mt-2 opacity-80">Keep it up! Study today to maintain your streak.</p>
+        </div>
+
+        <!-- Daily Progress -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Today's Progress</h3>
+            <span class="text-xs text-gray-500">8 / 20 words</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-primary-500 h-2.5 rounded-full transition-all duration-500" style="width: 40%"></div>
+          </div>
+          <div class="flex justify-between mt-2 text-xs text-gray-500">
+            <span>40% complete</span>
+            <span>12 words to go</span>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white rounded-lg border border-gray-200 p-3 text-center">
+            <p class="text-2xl font-bold text-primary-500">156</p>
+            <p class="text-xs text-gray-500 mt-1">Total Words</p>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-3 text-center">
+            <p class="text-2xl font-bold text-success-500">89%</p>
+            <p class="text-xs text-gray-500 mt-1">Accuracy</p>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-3 text-center">
+            <p class="text-2xl font-bold text-streak-500">5</p>
+            <p class="text-xs text-gray-500 mt-1">Badges</p>
+          </div>
+        </div>
+
+        <!-- Recent Words -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Recent Words</h3>
+            <button class="text-xs text-primary-500 font-medium hover:text-primary-600 transition-colors">View All</button>
+          </div>
+          <div class="space-y-2">
+            <!-- Word Item -->
+            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <div>
+                <p class="text-sm font-medium text-gray-800">ephemeral</p>
+                <p class="text-xs text-gray-500">phu du, tam thoi</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-medium bg-success-500/10 text-success-600 rounded-full">Learned</span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <div>
+                <p class="text-sm font-medium text-gray-800">ubiquitous</p>
+                <p class="text-xs text-gray-500">co mat khap noi</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-medium bg-primary-500/10 text-primary-600 rounded-full">Learning</span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <div>
+                <p class="text-sm font-medium text-gray-800">serendipity</p>
+                <p class="text-xs text-gray-500">su tinh co may man</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-medium bg-orange-500/10 text-orange-600 rounded-full">Due</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Study Button -->
+        <button class="w-full py-3 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 active:bg-primary-700 active:scale-[0.98] transition-all duration-300 shadow-sm">
+          Start Study Session
+        </button>
+      </section>
+
+      <!-- Study Tab -->
+      <section id="study" class="tab-content h-full flex flex-col p-4">
+
+        <!-- Progress Indicator -->
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-sm text-gray-500">Card 3 of 10</span>
+          <div class="flex gap-1">
+            <span class="w-6 h-1 bg-success-500 rounded-full"></span>
+            <span class="w-6 h-1 bg-success-500 rounded-full"></span>
+            <span class="w-6 h-1 bg-primary-500 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+            <span class="w-6 h-1 bg-gray-200 rounded-full"></span>
+          </div>
+        </div>
+
+        <!-- Flashcard -->
+        <div class="flashcard flex-1" onclick="this.classList.toggle('flipped')">
+          <div class="flashcard-inner relative w-full h-full">
+            <!-- Front -->
+            <div class="flashcard-front absolute inset-0 bg-white border-2 border-gray-200 rounded-xl shadow-md flex flex-col items-center justify-center p-6">
+              <p class="text-3xl font-bold text-gray-800 mb-2">ephemeral</p>
+              <p class="text-sm text-gray-400">/ih-FEM-er-uhl/</p>
+              <button class="mt-4 p-2 rounded-full hover:bg-gray-100 transition-colors" onclick="event.stopPropagation()">
+                <svg class="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.828-2.828"/>
+                </svg>
+              </button>
+              <p class="absolute bottom-4 text-xs text-gray-400">Tap to flip</p>
+            </div>
+            <!-- Back -->
+            <div class="flashcard-back absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-200 rounded-xl shadow-md flex flex-col items-center justify-center p-6">
+              <p class="text-lg font-semibold text-gray-800 text-center mb-3">Lasting for a very short time</p>
+              <p class="text-sm text-gray-600 text-center mb-4">Phu du, tam thoi, khong ton tai lau</p>
+              <div class="bg-white/70 rounded-lg p-3 w-full">
+                <p class="text-xs text-gray-500 italic text-center">"Fame is ephemeral in the digital age."</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rating Buttons -->
+        <div class="flex gap-3 mt-4">
+          <button class="flex-1 py-3 bg-red-50 text-red-600 font-semibold rounded-lg border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all duration-300">
+            <span class="text-sm">Hard</span>
+            <span class="block text-xs opacity-70 mt-0.5">&lt; 1 min</span>
+          </button>
+          <button class="flex-1 py-3 bg-yellow-50 text-yellow-700 font-semibold rounded-lg border border-yellow-200 hover:bg-yellow-100 active:scale-[0.98] transition-all duration-300">
+            <span class="text-sm">Good</span>
+            <span class="block text-xs opacity-70 mt-0.5">10 min</span>
+          </button>
+          <button class="flex-1 py-3 bg-green-50 text-green-600 font-semibold rounded-lg border border-green-200 hover:bg-green-100 active:scale-[0.98] transition-all duration-300">
+            <span class="text-sm">Easy</span>
+            <span class="block text-xs opacity-70 mt-0.5">4 days</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Vocabulary Tab -->
+      <section id="vocabulary" class="tab-content h-full flex flex-col">
+
+        <!-- Search Bar -->
+        <div class="p-4 bg-white border-b border-gray-200">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search vocabulary..."
+              class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
+            >
+          </div>
+          <!-- Filter Pills -->
+          <div class="flex gap-2 mt-3">
+            <button class="px-3 py-1 text-xs font-medium bg-primary-500 text-white rounded-full">All</button>
+            <button class="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">Learning</button>
+            <button class="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">Mastered</button>
+            <button class="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">Due</button>
+          </div>
+        </div>
+
+        <!-- Word List -->
+        <div class="flex-1 overflow-y-auto scroll-area">
+          <div class="p-4 space-y-2">
+            <!-- Word Card -->
+            <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-gray-800">ephemeral</p>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-success-500/10 text-success-600 rounded">Mastered</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-0.5">/ih-FEM-er-uhl/</p>
+                  <p class="text-xs text-gray-600 mt-1.5">Lasting for a very short time</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Phu du, tam thoi</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-gray-800">ubiquitous</p>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-primary-500/10 text-primary-600 rounded">Learning</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-0.5">/yoo-BIK-wi-tuhs/</p>
+                  <p class="text-xs text-gray-600 mt-1.5">Present, appearing, or found everywhere</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Co mat khap noi, pho bien</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-gray-800">serendipity</p>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-orange-500/10 text-orange-600 rounded">Due</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-0.5">/ser-uhn-DIP-i-tee/</p>
+                  <p class="text-xs text-gray-600 mt-1.5">The occurrence of events by chance in a happy way</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Su tinh co may man</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-gray-800">mellifluous</p>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-primary-500/10 text-primary-600 rounded">Learning</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-0.5">/muh-LIF-loo-uhs/</p>
+                  <p class="text-xs text-gray-600 mt-1.5">Sweet sounding, pleasant to hear</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Ngot ngao, du duong</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-gray-800">quintessential</p>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-success-500/10 text-success-600 rounded">Mastered</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-0.5">/kwin-tuh-SEN-shuhl/</p>
+                  <p class="text-xs text-gray-600 mt-1.5">Representing the most perfect example</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Tinh tuy nhat, dien hinh nhat</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Word FAB -->
+        <div class="absolute bottom-4 right-4">
+          <button class="w-12 h-12 bg-primary-500 text-white rounded-full shadow-lg hover:bg-primary-600 active:scale-95 transition-all duration-300 flex items-center justify-center">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    function switchTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('text-primary-500', 'border-primary-500');
+          btn.classList.remove('text-gray-500', 'border-transparent');
+        } else {
+          btn.classList.remove('text-primary-500', 'border-primary-500');
+          btn.classList.add('text-gray-500', 'border-transparent');
+        }
+      });
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(tabName).classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=420, initial-scale=1.0">
+  <title>Flashcard Review - Wireframe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwindcss.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              200: '#BFDBFE',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+            },
+            success: { 500: '#22C55E', 600: '#16A34A' },
+            streak: { 500: '#F97316', 600: '#EA580C' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      width: 420px;
+      max-height: 600px;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Flashcard 3D Flip */
+    .flashcard {
+      perspective: 1000px;
+    }
+
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+
+    .flashcard-front,
+    .flashcard-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 16px;
+    }
+
+    .flashcard-back {
+      transform: rotateY(180deg);
+    }
+
+    /* Card Slide Animation */
+    @keyframes card-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(100px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes card-slide-out {
+      from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(-100px) scale(0.95);
+      }
+    }
+
+    .card-enter {
+      animation: card-slide-in 400ms ease-out;
+    }
+
+    .card-exit {
+      animation: card-slide-out 300ms ease-in;
+    }
+
+    /* Progress dots animation */
+    @keyframes dot-complete {
+      from { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      to { transform: scale(1); }
+    }
+
+    .dot-animate {
+      animation: dot-complete 300ms ease-out;
+    }
+
+    /* Button press effect */
+    .rating-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Celebration confetti (CSS only) */
+    @keyframes confetti-fall {
+      0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 3s ease-in forwards;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="flex flex-col h-[600px]">
+
+    <!-- Header with Back Button -->
+    <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+      <button class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        <span class="text-sm font-medium">Back</span>
+      </button>
+
+      <h1 class="text-base font-semibold text-gray-800">Study Session</h1>
+
+      <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Session Info Bar -->
+    <div class="px-4 py-3 bg-white border-b border-gray-100">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <!-- Card Count -->
+          <div class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">3 / 10</span>
+          </div>
+
+          <!-- Timer -->
+          <div class="flex items-center gap-1.5 text-gray-500">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm">2:34</span>
+          </div>
+        </div>
+
+        <!-- Streak Bonus -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-streak-500/10 rounded-full">
+          <svg class="w-4 h-4 text-streak-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 23c-3.866 0-7-3.134-7-7 0-2.577 1.409-4.837 3.5-6.038V5c0-1.105.895-2 2-2h3c1.105 0 2 .895 2 2v4.962c2.091 1.201 3.5 3.461 3.5 6.038 0 3.866-3.134 7-7 7z"/>
+          </svg>
+          <span class="text-xs font-semibold text-streak-600">+2 streak</span>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="mt-3 flex items-center gap-1">
+        <div class="w-8 h-1 bg-success-500 rounded-full"></div>
+        <div class="w-8 h-1 bg-success-500 rounded-full"></div>
+        <div class="w-8 h-1 bg-primary-500 rounded-full animate-pulse"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+        <div class="w-8 h-1 bg-gray-200 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Main Flashcard Area -->
+    <main class="flex-1 flex flex-col p-4">
+
+      <!-- Flashcard Container -->
+      <div class="flashcard flex-1 card-enter" id="flashcard" onclick="flipCard()">
+        <div class="flashcard-inner">
+          <!-- Front Side -->
+          <div class="flashcard-front bg-white border-2 border-gray-200 shadow-lg flex flex-col items-center justify-center p-6">
+            <!-- Word -->
+            <h2 class="text-3xl font-bold text-gray-800">ephemeral</h2>
+
+            <!-- Phonetic -->
+            <p class="text-sm text-gray-400 mt-2">/ih-FEM-er-uhl/</p>
+
+            <!-- Audio Button -->
+            <button class="mt-4 p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" onclick="event.stopPropagation()">
+              <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+              </svg>
+            </button>
+
+            <!-- Part of Speech -->
+            <span class="mt-4 px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">adjective</span>
+
+            <!-- Hint -->
+            <p class="absolute bottom-4 text-xs text-gray-400">Tap card to reveal answer</p>
+          </div>
+
+          <!-- Back Side -->
+          <div class="flashcard-back bg-gradient-to-br from-primary-50 via-white to-primary-100 border-2 border-primary-200 shadow-lg flex flex-col items-center justify-center p-6">
+            <!-- Definition -->
+            <div class="text-center">
+              <p class="text-xs font-medium text-primary-500 uppercase tracking-wide mb-2">Definition</p>
+              <p class="text-lg font-semibold text-gray-800">Lasting for a very short time; transitory.</p>
+            </div>
+
+            <!-- Vietnamese -->
+            <div class="mt-4 p-3 bg-white/60 rounded-lg w-full text-center">
+              <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tieng Viet</p>
+              <p class="text-base text-gray-700">Phu du, tam thoi, khong ton tai lau</p>
+            </div>
+
+            <!-- Example -->
+            <div class="mt-4 text-center">
+              <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Example</p>
+              <p class="text-sm text-gray-600 italic">"Fame is ephemeral in the digital age."</p>
+            </div>
+
+            <!-- Hint -->
+            <p class="absolute bottom-4 text-xs text-gray-400">Tap to flip back</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating Buttons -->
+      <div class="mt-4 space-y-3">
+        <!-- Rating Instruction -->
+        <p class="text-center text-xs text-gray-500">How well did you know this?</p>
+
+        <!-- Button Row -->
+        <div class="flex gap-3">
+          <!-- Hard Button -->
+          <button class="rating-btn flex-1 py-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 active:bg-red-200 transition-all duration-200" onclick="rateCard('hard')">
+            <div class="flex flex-col items-center">
+              <svg class="w-6 h-6 text-red-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-sm font-semibold text-red-600">Hard</span>
+              <span class="text-xs text-red-400 mt-0.5">&lt; 1 min</span>
+            </div>
+          </button>
+
+          <!-- Good Button -->
+          <button class="rating-btn flex-1 py-4 bg-amber-50 border-2 border-amber-200 rounded-xl hover:bg-amber-100 hover:border-amber-300 active:bg-amber-200 transition-all duration-200" onclick="rateCard('good')">
+            <div class="flex flex-col items-center">
+              <svg class="w-6 h-6 text-amber-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-sm font-semibold text-amber-600">Good</span>
+              <span class="text-xs text-amber-500 mt-0.5">10 min</span>
+            </div>
+          </button>
+
+          <!-- Easy Button -->
+          <button class="rating-btn flex-1 py-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 active:bg-green-200 transition-all duration-200" onclick="rateCard('easy')">
+            <div class="flex flex-col items-center">
+              <svg class="w-6 h-6 text-green-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-sm font-semibold text-green-600">Easy</span>
+              <span class="text-xs text-green-500 mt-0.5">4 days</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Session Complete Modal (Initially Hidden) -->
+  <div id="complete-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl">
+      <!-- Celebration Icon -->
+      <div class="flex justify-center mb-4">
+        <div class="w-20 h-20 bg-gradient-to-br from-success-500 to-green-400 rounded-full flex items-center justify-center">
+          <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+      </div>
+
+      <h2 class="text-xl font-bold text-gray-800 text-center">Session Complete!</h2>
+      <p class="text-sm text-gray-500 text-center mt-2">Great job! You've reviewed all cards for today.</p>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-3 mt-6">
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-2xl font-bold text-primary-500">10</p>
+          <p class="text-xs text-gray-500">Cards</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-2xl font-bold text-success-500">90%</p>
+          <p class="text-xs text-gray-500">Accuracy</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-2xl font-bold text-streak-500">8</p>
+          <p class="text-xs text-gray-500">Day Streak</p>
+        </div>
+      </div>
+
+      <!-- XP Earned -->
+      <div class="mt-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-amber-700">XP Earned</span>
+          <span class="text-lg font-bold text-amber-600">+50 XP</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-6 space-y-3">
+        <button class="w-full py-3 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 active:scale-[0.98] transition-all duration-200">
+          Continue Studying
+        </button>
+        <button class="w-full py-3 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors">
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function flipCard() {
+      const card = document.getElementById('flashcard');
+      card.classList.toggle('flipped');
+    }
+
+    function rateCard(rating) {
+      const card = document.getElementById('flashcard');
+      card.classList.add('card-exit');
+
+      setTimeout(() => {
+        // Reset card for next word (in real app, load next card)
+        card.classList.remove('flipped', 'card-exit');
+        card.classList.add('card-enter');
+
+        // Remove animation class after it completes
+        setTimeout(() => {
+          card.classList.remove('card-enter');
+        }, 400);
+      }, 300);
+    }
+
+    // Demo: Show completion modal on double-click
+    document.addEventListener('dblclick', () => {
+      document.getElementById('complete-modal').classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
