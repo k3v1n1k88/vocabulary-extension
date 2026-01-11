@@ -5,14 +5,31 @@ import type { Word, FlashcardData, UserStats, UserSettings, TabType } from '@/ty
 // Chrome storage adapter for Zustand
 const chromeStorage = {
   getItem: async (name: string): Promise<string | null> => {
-    const result = await chrome.storage.local.get(name)
-    return result[name] ?? null
+    try {
+      const result = await chrome.storage.local.get(name)
+      return result[name] ?? null
+    } catch (error) {
+      console.warn('[VocabExt] Storage read failed:', error)
+      return null
+    }
   },
   setItem: async (name: string, value: string): Promise<void> => {
-    await chrome.storage.local.set({ [name]: value })
+    try {
+      await chrome.storage.local.set({ [name]: value })
+    } catch (error) {
+      console.error('[VocabExt] Storage write failed:', error)
+      // Could be quota exceeded
+      if (error instanceof Error && error.message.includes('QUOTA')) {
+        throw new Error('Storage quota exceeded. Please delete some words.')
+      }
+    }
   },
   removeItem: async (name: string): Promise<void> => {
-    await chrome.storage.local.remove(name)
+    try {
+      await chrome.storage.local.remove(name)
+    } catch (error) {
+      console.warn('[VocabExt] Storage remove failed:', error)
+    }
   }
 }
 
@@ -26,6 +43,8 @@ interface VocabularyState {
   getWordById: (id: string) => Word | undefined
   getDueCards: () => FlashcardData[]
   updateFlashcard: (wordId: string, data: Partial<FlashcardData>) => void
+  addToStudy: (wordId: string) => void
+  isWordDue: (wordId: string) => boolean
 }
 
 export const useVocabularyStore = create<VocabularyState>()(
@@ -96,6 +115,23 @@ export const useVocabularyStore = create<VocabularyState>()(
           }
           return { flashcards: newFlashcards }
         })
+      },
+
+      addToStudy: (wordId) => {
+        set((state) => {
+          const newFlashcards = new Map(state.flashcards)
+          const existing = newFlashcards.get(wordId)
+          if (existing) {
+            // Set nextReview to now to make it due immediately
+            newFlashcards.set(wordId, { ...existing, nextReview: Date.now() })
+          }
+          return { flashcards: newFlashcards }
+        })
+      },
+
+      isWordDue: (wordId) => {
+        const card = get().flashcards.get(wordId)
+        return card ? card.nextReview <= Date.now() : false
       }
     }),
     {
@@ -201,7 +237,10 @@ const defaultSettings: UserSettings = {
   notificationsEnabled: true,
   theme: 'light',
   autoPlayAudio: true,
-  showVietnamese: true
+  showVietnamese: true,
+  lookupShortcutEnabled: false, // disabled by default = floating menu mode
+  lookupShortcut: 'Ctrl+Shift+D',
+  targetLanguage: 'vi'
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -220,6 +259,22 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 )
+
+// Sync settings store when external changes occur (e.g., from content script)
+if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes['settings-storage']?.newValue) {
+      try {
+        const parsed = JSON.parse(changes['settings-storage'].newValue)
+        if (parsed?.state?.settings) {
+          useSettingsStore.setState({ settings: { ...defaultSettings, ...parsed.state.settings } })
+        }
+      } catch (e) {
+        console.warn('Failed to sync settings from storage:', e)
+      }
+    }
+  })
+}
 
 // UI state store (not persisted)
 interface UIState {

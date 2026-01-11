@@ -1,4 +1,5 @@
 import type { Word, DictionaryResponse } from '@/types'
+import { translateToTargetLanguage as openaiTranslate } from './openai-translation'
 
 const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
 
@@ -6,8 +7,15 @@ const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
  * Look up a word using Free Dictionary API
  */
 export async function lookupWord(word: string): Promise<Word | null> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
+
   try {
-    const response = await fetch(`${FREE_DICTIONARY_API}/${encodeURIComponent(word.toLowerCase())}`)
+    const response = await fetch(
+      `${FREE_DICTIONARY_API}/${encodeURIComponent(word.toLowerCase())}`,
+      { signal: controller.signal }
+    )
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -40,6 +48,16 @@ export async function lookupWord(word: string): Promise<Word | null> {
       })
     })
 
+    // Collect antonyms from all meanings
+    const antonyms: string[] = []
+    meanings.forEach((m) => {
+      m.definitions.forEach((d) => {
+        if (d.antonyms) {
+          antonyms.push(...d.antonyms.slice(0, 3))
+        }
+      })
+    })
+
     // Collect examples
     const examples: string[] = []
     meanings.forEach((m) => {
@@ -58,37 +76,48 @@ export async function lookupWord(word: string): Promise<Word | null> {
       partOfSpeech: firstMeaning?.partOfSpeech,
       audioUrl,
       synonyms: [...new Set(synonyms)].slice(0, 5),
+      antonyms: [...new Set(antonyms)].slice(0, 5),
       examples: examples.slice(0, 3),
       createdAt: Date.now()
     }
 
     return wordData
   } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.')
+    }
     console.error('Dictionary lookup failed:', error)
     throw error
   }
 }
 
 /**
- * Simple Vietnamese translation using a placeholder
- * In production, integrate with Google Translate API or similar
+ * Translate word using OpenAI to user's configured language
+ * Returns full translation result including synonyms/antonyms
  */
-export async function translateToVietnamese(word: string): Promise<string> {
-  // Placeholder translations for demo
-  // In production, use a real translation API
-  const translations: Record<string, string> = {
-    ephemeral: 'phù du, tạm thời',
-    ubiquitous: 'có mặt khắp nơi',
-    serendipity: 'sự tình cờ may mắn',
-    eloquent: 'hùng biện, lưu loát',
-    resilient: 'kiên cường, bền bỉ'
+export async function translateWord(word: string): Promise<{
+  translation: string
+  synonyms?: string[]
+  antonyms?: string[]
+}> {
+  try {
+    const result = await openaiTranslate(word)
+    return {
+      translation: result.translatedText,
+      synonyms: result.synonyms,
+      antonyms: result.antonyms
+    }
+  } catch (error) {
+    // If OpenAI fails (no API key, etc.), return placeholder
+    console.warn('Translation failed, using placeholder:', error)
+    return { translation: `[API key required]` }
   }
-
-  return translations[word.toLowerCase()] || `[Bản dịch: ${word}]`
 }
 
 /**
- * Enhanced word lookup with Vietnamese translation
+ * Enhanced word lookup with translation
+ * Merges synonyms/antonyms from OpenAI when dictionary doesn't have them
  */
 export async function lookupWordWithTranslation(word: string): Promise<Word | null> {
   const wordData = await lookupWord(word)
@@ -97,10 +126,22 @@ export async function lookupWordWithTranslation(word: string): Promise<Word | nu
     return null
   }
 
-  const vietnameseTranslation = await translateToVietnamese(word)
+  const translationResult = await translateWord(word)
+
+  // Merge synonyms: use dictionary's, supplement with OpenAI's
+  const mergedSynonyms = wordData.synonyms?.length
+    ? wordData.synonyms
+    : translationResult.synonyms
+
+  // Merge antonyms: use dictionary's, supplement with OpenAI's
+  const mergedAntonyms = wordData.antonyms?.length
+    ? wordData.antonyms
+    : translationResult.antonyms
 
   return {
     ...wordData,
-    vietnameseTranslation
+    vietnameseTranslation: translationResult.translation,
+    synonyms: mergedSynonyms,
+    antonyms: mergedAntonyms
   }
 }

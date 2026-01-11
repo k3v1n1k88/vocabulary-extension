@@ -27,10 +27,13 @@ export function calculateNextReview(
   card: FlashcardData,
   quality: Quality
 ): ReviewResult {
+  // Runtime validation: clamp quality to valid range 1-5
+  const validQuality = Math.max(1, Math.min(5, Math.round(quality))) as Quality
+
   let { repetitions, easinessFactor, interval } = card
 
   // Quality < 3 means failure - reset
-  if (quality < 3) {
+  if (validQuality < 3) {
     repetitions = 0
     interval = 1
   } else {
@@ -49,7 +52,7 @@ export function calculateNextReview(
     // Update easiness factor
     // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
     easinessFactor =
-      easinessFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+      easinessFactor + (0.1 - (5 - validQuality) * (0.08 + (5 - validQuality) * 0.02))
 
     // EF should not fall below 1.3
     easinessFactor = Math.max(1.3, easinessFactor)
