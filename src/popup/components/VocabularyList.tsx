@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useVocabularyStore } from '@/shared/store'
+import { useVocabularyStore, useUIStore } from '@/shared/store'
 import { playPronunciation } from '@/shared/tts'
 import type { Word } from '@/types'
 
 export default function VocabularyList() {
-  const { words, removeWord } = useVocabularyStore()
+  const { words, removeWord, addToStudy, isWordDue } = useVocabularyStore()
+  const { setActiveTab } = useUIStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -25,6 +26,12 @@ export default function VocabularyList() {
   const handlePlayAudio = (word: Word, e: React.MouseEvent) => {
     e.stopPropagation()
     playPronunciation(word.word, word.audioUrl)
+  }
+
+  const handleAddToStudy = (wordId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    addToStudy(wordId)
+    setActiveTab('study')
   }
 
   return (
@@ -95,6 +102,18 @@ export default function VocabularyList() {
                     )}
                   </div>
                   <div className="flex items-center gap-1">
+                    {isWordDue(word.id) ? (
+                      <span className="text-xs px-2 py-1 bg-primary-100 text-primary-600 rounded-full font-medium">
+                        Studying
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => handleAddToStudy(word.id, e)}
+                        className="text-xs px-2 py-1 bg-success-50 text-success-600 rounded-full font-medium hover:bg-success-100 transition-colors"
+                      >
+                        + Add to Study
+                      </button>
+                    )}
                     <button
                       onClick={(e) => handlePlayAudio(word, e)}
                       className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-500 transition-colors"
@@ -133,22 +152,39 @@ export default function VocabularyList() {
                   <p className="text-sm text-gray-700 mb-2">{word.definition}</p>
                   {word.vietnameseTranslation && (
                     <div className="bg-amber-50 p-2 rounded-lg mb-2">
-                      <span className="text-xs text-amber-700">Tiếng Việt: </span>
+                      <span className="text-xs text-amber-700">Translation: </span>
                       <span className="text-sm text-amber-900">{word.vietnameseTranslation}</span>
                     </div>
                   )}
                   {word.examples?.[0] && (
-                    <p className="text-sm text-gray-500 italic">"{word.examples[0]}"</p>
+                    <p className="text-sm text-gray-500 italic mb-2">"{word.examples[0]}"</p>
                   )}
-                  {word.synonyms && word.synonyms.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {word.synonyms.map((syn, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                          {syn}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-3 mt-2">
+                    {word.synonyms && word.synonyms.length > 0 && (
+                      <div className="flex-1">
+                        <span className="text-xs text-success-600 font-medium">Synonyms: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {word.synonyms.map((syn, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 bg-success-50 text-success-700 rounded-full">
+                              {syn}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {word.antonyms && word.antonyms.length > 0 && (
+                      <div className="flex-1">
+                        <span className="text-xs text-error-600 font-medium">Antonyms: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {word.antonyms.map((ant, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 bg-error-50 text-error-700 rounded-full">
+                              {ant}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

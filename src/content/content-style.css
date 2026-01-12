@@ -1,3 +1,155 @@
+/* Floating Menu Styles */
+#vocab-floating-menu {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  overflow: visible;
+  animation: menuSlideIn 0.15s ease-out;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+}
+
+/* Horizontal menu layout */
+#vocab-floating-menu.vocab-menu-horizontal {
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.vocab-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.vocab-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+/* Horizontal menu items - icon only, compact */
+.vocab-menu-horizontal .vocab-menu-item {
+  padding: 6px 10px;
+  border-radius: 16px;
+}
+
+.vocab-menu-item:hover {
+  background: #f3f4f6;
+  color: #3b82f6;
+}
+
+.vocab-menu-item:active {
+  background: #e5e7eb;
+}
+
+.vocab-menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.vocab-menu-item:hover svg {
+  opacity: 1;
+}
+
+.vocab-menu-item em {
+  font-style: normal;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.vocab-menu-item:hover em {
+  color: #2563eb;
+}
+
+/* Vertical divider for horizontal menu */
+.vocab-menu-divider {
+  width: 1px;
+  height: 16px;
+  background: #e5e7eb;
+  margin: 0 4px;
+}
+
+/* Language short code display */
+.vocab-lang-short {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* Language trigger with dropdown arrow */
+.vocab-lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  margin-left: 4px;
+  background: #eff6ff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vocab-lang-trigger:hover {
+  background: #dbeafe;
+}
+
+.vocab-lang-trigger svg {
+  opacity: 0.6;
+}
+
+/* Language dropdown */
+.vocab-lang-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.vocab-lang-option {
+  padding: 8px 14px;
+  cursor: pointer;
+  color: #374151;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.vocab-lang-option:hover {
+  background: #f3f4f6;
+}
+
+.vocab-lang-option.active {
+  background: #eff6ff;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Vocabulary Tooltip Styles */
 #vocabulary-tooltip {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -10,9 +162,29 @@
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   padding: 16px;
-  max-width: 350px;
+  width: max-content;
+  min-width: 300px;
+  max-width: min(450px, 90vw);
   border: 1px solid #e5e7eb;
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Responsive adjustments for larger screens */
+@media (min-width: 1200px) {
+  .vocab-tooltip-content {
+    min-width: 350px;
+    max-width: 500px;
+    padding: 20px;
+  }
+
+  .vocab-word {
+    font-size: 22px;
+  }
+
+  .vocab-definition,
+  .vocab-translated-text {
+    font-size: 16px;
+  }
 }
 
 @keyframes fadeIn {
@@ -115,18 +287,27 @@
   color: #6b7280;
 }
 
-.vocab-synonyms {
+.vocab-synonyms,
+.vocab-antonyms {
   margin-bottom: 12px;
 }
 
 .vocab-tag {
   display: inline-block;
-  background: #f3f4f6;
-  color: #4b5563;
   padding: 4px 10px;
   border-radius: 16px;
   font-size: 12px;
   margin: 4px 4px 0 0;
+}
+
+.vocab-tag-syn {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vocab-tag-ant {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .vocab-actions {
@@ -164,6 +345,30 @@
   cursor: not-allowed;
 }
 
+/* Loading state */
+.vocab-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: #6b7280;
+}
+
+.vocab-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Error state */
 .vocab-error {
   text-align: center;
@@ -172,4 +377,132 @@
 
 .vocab-error p {
   margin: 0;
+}
+
+/* Translation tooltip styles */
+.vocab-translation {
+  min-width: 320px;
+  max-width: min(520px, 90vw);
+}
+
+@media (min-width: 1200px) {
+  .vocab-translation {
+    min-width: 400px;
+    max-width: 600px;
+  }
+}
+
+/* Override word styling for translation (phrases are longer) */
+.vocab-translation .vocab-word {
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.vocab-translation .vocab-header {
+  margin-bottom: 10px;
+}
+
+.vocab-type-badge {
+  display: inline-block;
+  background: #ddd6fe;
+  color: #7c3aed;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.vocab-lang-info {
+  display: block;
+  color: #9ca3af;
+  font-size: 11px;
+  margin-top: 2px;
+  position: relative;
+}
+
+/* Target language trigger in tooltip */
+.vocab-target-lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #3b82f6;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.vocab-target-lang-trigger:hover {
+  background: #eff6ff;
+}
+
+.vocab-target-lang-trigger svg {
+  opacity: 0.6;
+}
+
+/* Target language dropdown in tooltip */
+.vocab-target-lang-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 100;
+  min-width: 120px;
+  margin-top: 4px;
+}
+
+.vocab-translation-result {
+  margin-bottom: 12px;
+}
+
+.vocab-translated-text {
+  background: #f0fdf4;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #166534;
+  font-size: 14px;
+  line-height: 1.5;
+  border-left: 3px solid #22c55e;
+}
+
+.vocab-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vocab-copy-btn:hover {
+  background: #e5e7eb;
+}
+
+.vocab-translation .vocab-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.vocab-translation .vocab-audio-btn {
+  padding: 8px 12px;
+  width: auto;
+  border-radius: 8px;
+  gap: 6px;
 }

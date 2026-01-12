@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Skill(research)",
+      "WebSearch",
+      "Bash(gemini:*)",
+      "Bash(dir:*)",
+      "Bash(node:*)",
+      "Bash(ren:*)",
+      "Skill(chrome-devtools)",
+      "Bash(timeout:*)",
+      "Bash(powershell -command \"Start-Sleep -Seconds 2\")",
+      "Skill(ai-multimodal)",
+      "Bash(.claude\\skills\\.venv\\Scripts\\python.exe:*)",
+      "Bash(D:\\vanntl\\vocabulary-extension\\.claude\\skills\\.venv\\Scripts\\python.exe:*)",
+      "Bash(\"C:\\Users\\vanntl-PC-Window11\\.claude\\skills\\.venv\\Scripts\\python.exe\" \"C:\\Users\\vanntl-PC-Window11\\.claude\\skills\\ai-multimodal\\scripts\\gemini_batch_process.py\" --task generate --prompt \"Design a modern, minimalist app icon for a vocabulary learning Chrome extension. The icon should feature an open book with glowing letters floating above it, combined with a brain or lightbulb symbol representing learning. Use a gradient of blue (#3B82F6) to green (#22C55E). Clean lines, flat design style, suitable for 128x128px Chrome extension icon. White or transparent background.\" --output \"D:\\vanntl\\vocabulary-extension\\public\\icon-128.png\")",
+      "Bash(python:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(awk:*)",
+      "Bash(git reset:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

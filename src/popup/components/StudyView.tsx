@@ -145,56 +145,135 @@ export default function StudyView() {
       {/* Flashcard */}
       {currentWord && (
         <div
-          className="flip-card cursor-pointer"
+          className={`flip-card cursor-pointer ${isFlipped ? 'flipped' : ''}`}
           onClick={handleFlip}
         >
-          <div className={`flip-card-inner relative h-56 ${isFlipped ? 'flipped' : ''}`}>
-            {/* Front */}
-            <div className="flip-card-front absolute inset-0 bg-white rounded-xl shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center backface-hidden">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{currentWord.word}</h2>
+          <div className="flip-card-inner relative h-80">
+            {/* Front - Word & Pronunciation */}
+            <div className="flip-card-front absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center backface-hidden">
+              <h2 className="text-3xl font-bold text-white mb-2">{currentWord.word}</h2>
               {currentWord.pronunciation && (
-                <span className="text-gray-500 text-sm mb-3">{currentWord.pronunciation}</span>
+                <span className="text-primary-100 text-base mb-4">{currentWord.pronunciation}</span>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handlePlayAudio()
-                }}
-                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-              </button>
-              {currentWord.partOfSpeech && (
-                <span className="mt-3 px-3 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
-                  {currentWord.partOfSpeech}
-                </span>
-              )}
-              <p className="text-xs text-gray-400 mt-4">Tap to reveal answer</p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handlePlayAudio()
+                  }}
+                  className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </button>
+                {currentWord.partOfSpeech && (
+                  <span className="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                    {currentWord.partOfSpeech}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-primary-200 mt-6">Tap to reveal answer</p>
             </div>
 
-            {/* Back */}
-            <div className="flip-card-back absolute inset-0 bg-white rounded-xl shadow-md border border-gray-100 p-6 overflow-y-auto backface-hidden" style={{ transform: 'rotateY(180deg)' }}>
-              <p className="text-gray-800 mb-3">{currentWord.definition}</p>
+            {/* Back - Definition, Translation, Example */}
+            <div className="flip-card-back absolute inset-0 bg-white rounded-xl shadow-lg border border-gray-100 p-5 overflow-y-auto backface-hidden" style={{ transform: 'rotateY(180deg)' }}>
+              {/* Definition */}
+              <div className="mb-3">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Definition</span>
+                <p className="text-gray-800 text-sm mt-1">{currentWord.definition}</p>
+              </div>
+
+              {/* Translation */}
               {currentWord.vietnameseTranslation && (
-                <div className="bg-amber-50 p-3 rounded-lg mb-3">
-                  <span className="text-xs text-amber-700 font-medium">Tiếng Việt</span>
-                  <p className="text-amber-900">{currentWord.vietnameseTranslation}</p>
+                <div className="bg-amber-50 p-3 rounded-lg mb-3 border-l-3 border-amber-400">
+                  <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Translation</span>
+                  <p className="text-amber-900 mt-1">{currentWord.vietnameseTranslation}</p>
                 </div>
               )}
+
+              {/* Example */}
               {currentWord.examples?.[0] && (
-                <p className="text-sm text-gray-500 italic border-l-2 border-gray-200 pl-3">
-                  "{currentWord.examples[0]}"
-                </p>
+                <div className="mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Example</span>
+                  <p className="text-gray-600 text-sm mt-1 italic pl-3 border-l-2 border-primary-300">
+                    "{currentWord.examples[0]}"
+                  </p>
+                </div>
               )}
+
+              {/* Synonyms & Antonyms */}
+              <div className="flex gap-4">
+                {currentWord.synonyms && currentWord.synonyms.length > 0 && (
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-success-600 uppercase tracking-wide">Synonyms</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {currentWord.synonyms.slice(0, 4).map((syn, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-success-50 text-success-700 text-xs rounded-full">
+                          {syn}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {currentWord.antonyms && currentWord.antonyms.length > 0 && (
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-error-600 uppercase tracking-wide">Antonyms</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {currentWord.antonyms.slice(0, 4).map((ant, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-error-50 text-error-700 text-xs rounded-full">
+                          {ant}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rating prompt */}
-      <p className="text-center text-sm text-gray-500">How well did you know this?</p>
+      {/* Navigation buttons */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => {
+            if (currentIndex > 0) {
+              setCurrentIndex(currentIndex - 1)
+              setIsFlipped(false)
+              const prevWord = getWordById(dueCards[currentIndex - 1].wordId)
+              setCurrentWord(prevWord || null)
+            }
+          }}
+          disabled={currentIndex === 0}
+          className="flex items-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        <p className="text-sm text-gray-500">How well did you know this?</p>
+
+        <button
+          onClick={() => {
+            if (currentIndex < dueCards.length - 1) {
+              setCurrentIndex(currentIndex + 1)
+              setIsFlipped(false)
+              const nextWord = getWordById(dueCards[currentIndex + 1].wordId)
+              setCurrentWord(nextWord || null)
+            }
+          }}
+          disabled={currentIndex >= dueCards.length - 1}
+          className="flex items-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          Skip
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Rating buttons */}
       <div className="grid grid-cols-3 gap-2">

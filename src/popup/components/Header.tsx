@@ -1,10 +1,12 @@
-import { useStatsStore } from '@/shared/store'
+import { useStatsStore, useSettingsStore } from '@/shared/store'
+import { SUPPORTED_LANGUAGES } from '@/types'
 
 export default function Header() {
   const { stats } = useStatsStore()
+  const { settings, updateSettings } = useSettingsStore()
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between overflow-visible relative z-10">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-success-500 rounded-lg flex items-center justify-center">
           <svg
@@ -24,7 +26,20 @@ export default function Header() {
         <h1 className="font-semibold text-gray-800">Vocabulary</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Language selector - native select for Chrome popup compatibility */}
+        <select
+          value={settings.targetLanguage}
+          onChange={(e) => updateSettings({ targetLanguage: e.target.value })}
+          className="px-2 py-1 text-xs font-medium text-primary-600 bg-primary-50 border-none rounded-md cursor-pointer focus:ring-2 focus:ring-primary-300 focus:outline-none"
+        >
+          {SUPPORTED_LANGUAGES.map(lang => (
+            <option key={lang.code} value={lang.code}>
+              {lang.nativeName}
+            </option>
+          ))}
+        </select>
+
         {/* Streak indicator */}
         <div className="flex items-center gap-1 text-streak-500">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

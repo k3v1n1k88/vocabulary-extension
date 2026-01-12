@@ -10,7 +10,9 @@ export default defineManifest({
     'storage',
     'contextMenus',
     'activeTab',
-    'tts'
+    'tts',
+    'notifications',
+    'alarms'
   ],
 
   background: {

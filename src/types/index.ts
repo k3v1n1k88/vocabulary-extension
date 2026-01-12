@@ -8,6 +8,7 @@ export interface Word {
   vietnameseTranslation?: string
   examples?: string[]
   synonyms?: string[]
+  antonyms?: string[]
   audioUrl?: string
   createdAt: number
   lastReviewed?: number
@@ -52,15 +53,48 @@ export interface Achievement {
 export interface UserSettings {
   dailyGoal: number // words per day
   notificationsEnabled: boolean
-  reminderTime?: string // HH:mm format
+  reminderInterval?: number // interval in minutes (default: 60)
   theme: 'light' | 'dark' | 'system'
   autoPlayAudio: boolean
   showVietnamese: boolean
+  lookupShortcutEnabled: boolean // enable keyboard shortcut mode (disables floating menu)
+  lookupShortcut: string // e.g., 'Ctrl+Shift+D', 'Ctrl+D', 'Alt+T'
+  targetLanguage: string // e.g., 'vi', 'zh', 'ja', 'ko', 'es', 'fr'
+}
+
+// Supported translation languages
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย' },
+  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
+] as const
+
+// Translation types
+export interface TranslationResult {
+  originalText: string
+  translatedText: string
+  sourceLanguage: string
+  targetLanguage: string
+  isPhrase: boolean
+  synonyms?: string[]
+  antonyms?: string[]
+  note?: string
 }
 
 // Message types for Chrome runtime messaging
 export type MessageType =
   | 'LOOKUP_WORD'
+  | 'LOOKUP_SELECTED'
+  | 'TRANSLATE_TEXT'
   | 'SAVE_WORD'
   | 'GET_WORDS'
   | 'DELETE_WORD'
@@ -68,6 +102,9 @@ export type MessageType =
   | 'GET_STATS'
   | 'UPDATE_STATS'
   | 'PLAY_AUDIO'
+  | 'SHOW_LOADING'
+  | 'UPDATE_REMINDER'
+  | 'TEST_NOTIFICATION'
 
 export interface Message<T = unknown> {
   type: MessageType
@@ -97,6 +134,7 @@ export interface DictionaryResponse {
       definition: string
       example?: string
       synonyms?: string[]
+      antonyms?: string[]
     }>
   }>
 }

@@ -383,8 +383,8 @@ function showFloatingButton(selection: Selection) {
 }
 
 function removeFloatingButton() {
-  // Remove click listener to prevent memory leaks
-  document.removeEventListener('click', handleOutsideClick)
+  // Note: Don't remove handleOutsideClick here - it's for tooltip, not floating button
+  // The listener is properly cleaned up in removeTooltip()
 
   if (floatingButton) {
     console.log('[VocabExt] Removing floating menu')
