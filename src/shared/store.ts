@@ -240,7 +240,8 @@ const defaultSettings: UserSettings = {
   showVietnamese: true,
   lookupShortcutEnabled: false, // disabled by default = floating menu mode
   lookupShortcut: 'Ctrl+Shift+D',
-  targetLanguage: 'vi'
+  targetLanguage: 'vi',
+  llmProvider: 'openai' // backward compatible default
 }
 
 export const useSettingsStore = create<SettingsState>()(

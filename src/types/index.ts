@@ -49,6 +49,25 @@ export interface Achievement {
   maxProgress?: number
 }
 
+// LLM Provider types
+export type LLMProvider = 'openai' | 'gemini' | 'grok'
+
+export interface ModelInfo {
+  id: string
+  description: string // Short description for users
+}
+
+export interface ProviderConfig {
+  id: LLMProvider
+  name: string
+  endpoint: string
+  defaultModel: string
+  models: ModelInfo[]
+  authType: 'bearer' | 'header' // header = x-goog-api-key for Gemini
+  apiKeyStorageKey: string
+  registerUrl: string
+}
+
 // Settings types
 export interface UserSettings {
   dailyGoal: number // words per day
@@ -60,6 +79,8 @@ export interface UserSettings {
   lookupShortcutEnabled: boolean // enable keyboard shortcut mode (disables floating menu)
   lookupShortcut: string // e.g., 'Ctrl+Shift+D', 'Ctrl+D', 'Alt+T'
   targetLanguage: string // e.g., 'vi', 'zh', 'ja', 'ko', 'es', 'fr'
+  llmProvider: LLMProvider // selected LLM provider
+  llmModel?: string // selected model for current provider
 }
 
 // Supported translation languages

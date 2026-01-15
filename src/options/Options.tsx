@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useSettingsStore, useStatsStore, useVocabularyStore } from '@/shared/store'
-import { saveApiKey } from '@/shared/openai-translation'
+import { saveApiKey, testConnection } from '@/shared/translation-service'
+import { LLM_PROVIDERS, getProviderConfig } from '@/shared/llm-provider-config'
 import { SUPPORTED_LANGUAGES } from '@/types'
+import type { LLMProvider } from '@/types'
 import Dashboard from '@/popup/components/Dashboard'
 import StudyView from '@/popup/components/StudyView'
 import VocabularyList from '@/popup/components/VocabularyList'
@@ -120,31 +122,87 @@ function SettingsContent() {
   const { settings, updateSettings } = useSettingsStore()
   const { stats } = useStatsStore()
   const { words } = useVocabularyStore()
-  const [apiKey, setApiKey] = useState('')
-  const [apiKeySaved, setApiKeySaved] = useState(false)
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false)
 
+  // Multi-provider API key state
+  const [providerApiKeys, setProviderApiKeys] = useState<Record<LLMProvider, { value: string; saved: boolean }>>({
+    openai: { value: '', saved: false },
+    gemini: { value: '', saved: false },
+    grok: { value: '', saved: false }
+  })
+  const [testResult, setTestResult] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message?: string }>({ status: 'idle' })
+
+  // Load API keys for all providers on mount
   useEffect(() => {
-    chrome.storage.local.get(['openaiApiKey'], (result) => {
-      if (result.openaiApiKey) {
-        setApiKey('••••••••••••••••••••' + result.openaiApiKey.slice(-4))
-        setApiKeySaved(true)
-      }
+    LLM_PROVIDERS.forEach(provider => {
+      chrome.storage.local.get([provider.apiKeyStorageKey], (result) => {
+        const key = result[provider.apiKeyStorageKey]
+        if (key) {
+          setProviderApiKeys(prev => ({
+            ...prev,
+            [provider.id]: {
+              value: '••••••••••••••••••••' + key.slice(-4),
+              saved: true
+            }
+          }))
+        }
+      })
     })
   }, [])
 
-  const handleSaveApiKey = async () => {
-    if (apiKey && !apiKey.startsWith('••••')) {
-      await saveApiKey(apiKey)
-      setApiKey('••••••••••••••••••••' + apiKey.slice(-4))
-      setApiKeySaved(true)
+  // Current provider config and state
+  const currentProvider = getProviderConfig(settings.llmProvider || 'openai')
+  const currentKeyState = providerApiKeys[currentProvider.id]
+
+  const handleSaveProviderApiKey = async () => {
+    const keyValue = currentKeyState.value
+    if (keyValue && !keyValue.startsWith('••••')) {
+      await saveApiKey(keyValue, currentProvider.id)
+      setProviderApiKeys(prev => ({
+        ...prev,
+        [currentProvider.id]: {
+          value: '••••••••••••••••••••' + keyValue.slice(-4),
+          saved: true
+        }
+      }))
+      setTestResult({ status: 'idle' })
     }
   }
 
-  const handleClearApiKey = async () => {
-    await chrome.storage.local.remove('openaiApiKey')
-    setApiKey('')
-    setApiKeySaved(false)
+  const handleClearProviderApiKey = async () => {
+    await chrome.storage.local.remove(currentProvider.apiKeyStorageKey)
+    setProviderApiKeys(prev => ({
+      ...prev,
+      [currentProvider.id]: { value: '', saved: false }
+    }))
+    setTestResult({ status: 'idle' })
+  }
+
+  const handleApiKeyChange = (value: string) => {
+    setProviderApiKeys(prev => ({
+      ...prev,
+      [currentProvider.id]: { value, saved: false }
+    }))
+    setTestResult({ status: 'idle' })
+  }
+
+  const handleTestConnection = async () => {
+    const keyValue = currentKeyState.value
+    if (!keyValue || keyValue.startsWith('••••')) {
+      setTestResult({ status: 'error', message: 'Enter a new API key to test' })
+      return
+    }
+
+    setTestResult({ status: 'testing' })
+    try {
+      await testConnection(currentProvider.id, keyValue)
+      setTestResult({ status: 'success', message: 'Connection successful!' })
+    } catch (error) {
+      setTestResult({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Connection failed'
+      })
+    }
   }
 
   useEffect(() => {
@@ -402,50 +460,116 @@ function SettingsContent() {
             </select>
           </div>
 
+          {/* LLM Provider Dropdown */}
           <div className="border-t border-gray-100 pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              OpenAI API Key
+              LLM Provider
+            </label>
+            <p className="text-sm text-gray-500 mb-3">
+              Choose AI provider for translations
+            </p>
+            <select
+              value={settings.llmProvider || 'openai'}
+              onChange={(e) => {
+                updateSettings({ llmProvider: e.target.value as LLMProvider })
+                setTestResult({ status: 'idle' })
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              {LLM_PROVIDERS.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Model Dropdown */}
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Model
+            </label>
+            <p className="text-sm text-gray-500 mb-3">
+              Select model for {currentProvider.name}
+            </p>
+            <select
+              value={settings.llmModel || currentProvider.defaultModel}
+              onChange={(e) => updateSettings({ llmModel: e.target.value })}
+              className="w-full max-w-md px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              {currentProvider.models.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.id} — {model.description}{model.id === currentProvider.defaultModel ? ' ★' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dynamic API Key Input */}
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {currentProvider.name} API Key
             </label>
             <p className="text-sm text-gray-500 mb-3">
               Required for translating phrases. Get your key from{' '}
               <a
-                href="https://platform.openai.com/api-keys"
+                href={currentProvider.registerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary-500 hover:underline"
               >
-                OpenAI Platform
+                {currentProvider.name} Console
               </a>
             </p>
             <div className="flex gap-2">
               <input
-                type={apiKeySaved ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value)
-                  setApiKeySaved(false)
-                }}
-                placeholder="sk-..."
+                type={currentKeyState.saved ? 'text' : 'password'}
+                value={currentKeyState.value}
+                onChange={(e) => handleApiKeyChange(e.target.value)}
+                placeholder={currentProvider.id === 'openai' ? 'sk-...' : 'Enter API key...'}
                 className="flex-1 max-w-md px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm font-mono"
               />
-              {apiKeySaved ? (
+              <button
+                onClick={handleTestConnection}
+                disabled={!currentKeyState.value || currentKeyState.value.startsWith('••••') || testResult.status === 'testing'}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testResult.status === 'testing' ? 'Testing...' : 'Test'}
+              </button>
+              {currentKeyState.saved ? (
                 <button
-                  onClick={handleClearApiKey}
+                  onClick={handleClearProviderApiKey}
                   className="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
                 >
                   Clear
                 </button>
               ) : (
                 <button
-                  onClick={handleSaveApiKey}
-                  disabled={!apiKey}
+                  onClick={handleSaveProviderApiKey}
+                  disabled={!currentKeyState.value}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Save
                 </button>
               )}
             </div>
-            {apiKeySaved && (
+            {testResult.status === 'success' && (
+              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {testResult.message}
+              </p>
+            )}
+            {testResult.status === 'error' && (
+              <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                {testResult.message}
+              </p>
+            )}
+            {currentKeyState.saved && testResult.status === 'idle' && (
               <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="20 6 9 17 4 12" />
@@ -453,13 +577,31 @@ function SettingsContent() {
                 API key saved securely
               </p>
             )}
+            {!currentKeyState.saved && !currentKeyState.value && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800 flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  No API key configured for {currentProvider.name}.{' '}
+                  <a
+                    href={currentProvider.registerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-900 underline font-medium"
+                  >
+                    Get one here
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
             <h4 className="font-medium text-blue-800 text-sm mb-1">How translation works</h4>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>Single word</strong> → Dictionary lookup (Free)</li>
-              <li>• <strong>Multiple words</strong> → OpenAI translation (Requires API key)</li>
+              <li>• <strong>Multiple words</strong> → {currentProvider.name} translation (Requires API key)</li>
             </ul>
           </div>
         </div>

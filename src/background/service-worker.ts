@@ -1,5 +1,5 @@
 import { lookupWordWithTranslation } from '@/shared/dictionary-api'
-import { translateToTargetLanguage, translateText, isPhrase } from '@/shared/openai-translation'
+import { translateToTargetLanguage, translateText, isPhrase } from '@/shared/translation-service'
 import { initNotifications, scheduleStudyReminder, showDailyReminder } from '@/shared/notifications'
 import type { Message, LookupWordPayload, Word } from '@/types'
 
@@ -152,10 +152,20 @@ async function handleMessage(
         }
         stored.state.flashcards.push([word.id, flashcard])
 
-        await chrome.storage.local.set({
-          'vocabulary-storage': JSON.stringify(stored)
-        })
-        sendResponse({ success: true })
+        try {
+          await chrome.storage.local.set({
+            'vocabulary-storage': JSON.stringify(stored)
+          })
+          sendResponse({ success: true })
+        } catch (storageError) {
+          // Handle storage quota exceeded
+          const errorMsg = storageError instanceof Error ? storageError.message : String(storageError)
+          if (errorMsg.includes('QUOTA') || errorMsg.includes('quota')) {
+            sendResponse({ success: false, error: 'Storage quota exceeded. Please delete some words.' })
+          } else {
+            sendResponse({ success: false, error: 'Failed to save word. Please try again.' })
+          }
+        }
         break
       }
 

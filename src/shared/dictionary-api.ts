@@ -1,5 +1,5 @@
 import type { Word, DictionaryResponse } from '@/types'
-import { translateToTargetLanguage as openaiTranslate } from './openai-translation'
+import { translateToTargetLanguage as llmTranslate } from './translation-service'
 
 const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
 
@@ -7,6 +7,11 @@ const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
  * Look up a word using Free Dictionary API
  */
 export async function lookupWord(word: string): Promise<Word | null> {
+  // Check network connectivity first
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('No internet connection. Please check your network.')
+  }
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000)
 
@@ -24,7 +29,12 @@ export async function lookupWord(word: string): Promise<Word | null> {
       throw new Error(`API error: ${response.status}`)
     }
 
-    const data: DictionaryResponse[] = await response.json()
+    let data: DictionaryResponse[]
+    try {
+      data = await response.json()
+    } catch {
+      throw new Error('Invalid response from dictionary. Please try again.')
+    }
 
     if (!data || data.length === 0) {
       return null
@@ -102,7 +112,7 @@ export async function translateWord(word: string): Promise<{
   antonyms?: string[]
 }> {
   try {
-    const result = await openaiTranslate(word)
+    const result = await llmTranslate(word)
     return {
       translation: result.translatedText,
       synonyms: result.synonyms,

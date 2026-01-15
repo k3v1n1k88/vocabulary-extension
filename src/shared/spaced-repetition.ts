@@ -30,7 +30,10 @@ export function calculateNextReview(
   // Runtime validation: clamp quality to valid range 1-5
   const validQuality = Math.max(1, Math.min(5, Math.round(quality))) as Quality
 
-  let { repetitions, easinessFactor, interval } = card
+  // Validate card data with safe defaults for corrupted/missing fields
+  let repetitions = card.repetitions ?? 0
+  let easinessFactor = Math.max(1.3, card.easinessFactor ?? 2.5)
+  let interval = Math.max(1, card.interval ?? 1)
 
   // Quality < 3 means failure - reset
   if (validQuality < 3) {
@@ -43,7 +46,8 @@ export function calculateNextReview(
     } else if (repetitions === 1) {
       interval = 6
     } else {
-      interval = Math.round(interval * easinessFactor)
+      // Cap interval at 3650 days (~10 years) to prevent overflow
+      interval = Math.min(Math.round(interval * easinessFactor), 3650)
     }
 
     // Increment repetitions for successful recall

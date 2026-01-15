@@ -1,6 +1,15 @@
 /**
  * Browser notification service for learning reminders
+ * Note for MacOS: Ensure Chrome has notification permission in System Settings > Notifications
  */
+
+/**
+ * Detect if running on MacOS (requireInteraction not supported on MacOS)
+ */
+function isMacOS(): boolean {
+  // Service workers don't have navigator.userAgentData, use platform check
+  return typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || '')
+}
 
 const ALARM_STUDY_REMINDER = 'study-reminder'
 const ALARM_DUE_CHECK = 'due-cards-check'
@@ -84,13 +93,14 @@ export async function showDailyReminder(
       message = 'Start building your vocabulary today!'
     }
 
+    // Build notification options - requireInteraction not supported on MacOS
     const notificationId = await chrome.notifications.create('daily-reminder-' + Date.now(), {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
       title,
       message,
       priority: 2,
-      requireInteraction: true
+      ...(isMacOS() ? {} : { requireInteraction: true })
     })
     console.log('[VocabExt] Notification created:', notificationId)
   } catch (error) {
