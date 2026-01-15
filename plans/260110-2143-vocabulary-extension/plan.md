@@ -1,12 +1,13 @@
 ---
 title: "Vocabulary Chrome Extension"
 description: "Chrome extension for word lookup, flashcards with SM-2 spaced repetition, EN/VN translation, gamification"
-status: pending
+status: completed
 priority: P1
 effort: 38h
-branch: main
-tags: [chrome-extension, react, typescript, firebase, spaced-repetition, gamification]
+branch: master
+tags: [chrome-extension, react, typescript, spaced-repetition, gamification]
 created: 2026-01-10
+completed: 2026-01-10
 ---
 
 # Vocabulary Chrome Extension - Implementation Plan
@@ -34,15 +35,17 @@ TTS audio              |
 
 | # | Phase | Status | Effort | Link |
 |---|-------|--------|--------|------|
-| 01 | Project Setup | pending | 2h | [phase-01-project-setup.md](./phase-01-project-setup.md) |
-| 02 | Extension Skeleton | pending | 3h | [phase-02-extension-skeleton.md](./phase-02-extension-skeleton.md) |
-| 03 | Firebase Integration | pending | 4h | [phase-03-firebase-integration.md](./phase-03-firebase-integration.md) |
-| 04 | Word Lookup Feature | pending | 5h | [phase-04-word-lookup.md](./phase-04-word-lookup.md) |
-| 05 | Vocabulary Storage | pending | 4h | [phase-05-vocabulary-storage.md](./phase-05-vocabulary-storage.md) |
-| 06 | Flashcard System | pending | 8h | [phase-06-flashcard-system.md](./phase-06-flashcard-system.md) |
-| 07 | Gamification System | pending | 6h | [phase-07-gamification.md](./phase-07-gamification.md) |
-| 08 | Settings & Options | pending | 3h | [phase-08-settings-options.md](./phase-08-settings-options.md) |
-| 09 | Testing & Polish | pending | 3h | [phase-09-testing-polish.md](./phase-09-testing-polish.md) |
+| 01 | Project Setup | ✅ done | 2h | [phase-01-project-setup.md](./phase-01-project-setup.md) |
+| 02 | Extension Skeleton | ✅ done | 3h | [phase-02-extension-skeleton.md](./phase-02-extension-skeleton.md) |
+| 03 | Firebase Integration | ⏭️ skipped | 4h | Used chrome.storage instead |
+| 04 | Word Lookup Feature | ✅ done | 5h | [phase-04-word-lookup.md](./phase-04-word-lookup.md) |
+| 05 | Vocabulary Storage | ✅ done | 4h | [phase-05-vocabulary-storage.md](./phase-05-vocabulary-storage.md) |
+| 06 | Flashcard System | ✅ done | 8h | [phase-06-flashcard-system.md](./phase-06-flashcard-system.md) |
+| 07 | Gamification System | ✅ done | 6h | [phase-07-gamification.md](./phase-07-gamification.md) |
+| 08 | Settings & Options | ✅ done | 3h | [phase-08-settings-options.md](./phase-08-settings-options.md) |
+| 09 | Testing & Polish | ✅ done | 3h | [phase-09-testing-polish.md](./phase-09-testing-polish.md) |
+
+**Note:** Firebase was skipped in favor of chrome.storage.local for offline-first simplicity.
 
 ## Key Dependencies
 
