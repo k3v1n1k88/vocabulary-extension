@@ -46,7 +46,7 @@ export default function App() {
           <span className="text-xs text-gray-500">Produced by Kevin Nguyen</span>
           <div className="flex gap-2">
             <a
-              href="#CHROME_STORE_URL"
+              href="https://chromewebstore.google.com/detail/vocabulary-builder/gjnopcfejkppaihaamfhdonlijjkfkdj"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-gray-500 hover:text-primary-600 transition-colors"
@@ -55,7 +55,7 @@ export default function App() {
             </a>
             <span className="text-gray-300">|</span>
             <a
-              href="#GITHUB_REPO_URL/issues"
+              href="https://github.com/k3v1n1k88/vocabulary-extension-issues/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-gray-500 hover:text-primary-600 transition-colors"

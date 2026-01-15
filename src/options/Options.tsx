@@ -655,7 +655,7 @@ function SettingsContent() {
 
           <div className="flex flex-wrap gap-3">
             <a
-              href="#CHROME_STORE_URL"
+              href="https://chromewebstore.google.com/detail/vocabulary-builder/gjnopcfejkppaihaamfhdonlijjkfkdj"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg text-sm font-medium hover:bg-yellow-300 transition-colors shadow-sm"
@@ -666,7 +666,7 @@ function SettingsContent() {
               Rate Extension
             </a>
             <a
-              href="#GITHUB_REPO_URL/issues"
+              href="https://github.com/k3v1n1k88/vocabulary-extension-issues/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors shadow-sm"
