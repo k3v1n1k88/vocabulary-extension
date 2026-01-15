@@ -9,21 +9,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [1.0.1] - 2026-01-15
+
 ### Added
-- Network timeout handling for API calls (10s dictionary, 30s OpenAI)
-- Error handling for chrome.storage operations
-- Runtime validation for SM-2 quality parameter
+- **Multi-LLM Provider Support**: Choose between OpenAI, Google Gemini, and xAI Grok
+- **Model Selection**: Pick specific models for each provider (gpt-4o-mini, gemini-2.0-flash, grok-2, etc.)
+- **API Key Test Button**: Verify your API key works before saving
+- **Network Offline Detection**: Clear error message when no internet connection
+- Model descriptions to help users choose the right model
 
 ### Fixed
-- JSON.parse crash on corrupted storage data (9 locations protected)
-- Context menu creation error on extension reload
-- Selection race condition in content script
-- Event listener memory leak in floating menu cleanup
-- Spaced repetition algorithm NaN from invalid quality values
+- Multi-line translation truncation bug (regex pattern fix)
+- MacOS notifications not appearing (requireInteraction not supported)
+- Storage quota exceeded error handling
+- Flashcard data validation with safe defaults for corrupted data
+- Interval overflow protection (capped at 10 years)
+- JSON parse error handling in dictionary API
+
+### Changed
+- Replaced OpenAI-only translation with generic multi-provider service
+- Updated feedback links to Chrome Web Store and GitHub Issues
 
 ### Security
-- Added try-catch to all storage read/write operations
-- Protected against storage quota exceeded errors
+- Empty LLM response validation
+- Network connectivity checks before API calls
 
 ---
 
@@ -53,6 +64,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.0.1 | 2026-01-15 | Multi-LLM providers (Gemini, Grok), bug fixes |
 | 1.0.0 | 2026-01-11 | Initial release |
 
 ---
