@@ -54,3 +54,6 @@ Thumbs.db
 playwright-report/
 test-results/
 coverage/
+
+# Secret
+key.json

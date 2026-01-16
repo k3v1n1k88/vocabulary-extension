@@ -159,41 +159,21 @@ To enable automatic publishing to Chrome Web Store, configure these secrets:
 
 #### Step 3: Generate Chrome Web Store API Credentials
 
-**Option A: Service Account (Recommended)**
+Uses [gcp-refresh-token](https://github.com/PlasmoHQ/gcp-refresh-token) CLI to get OAuth credentials (replaces deprecated OOB flow).
 
-Simpler approach without OAuth refresh tokens. See [official docs](https://developer.chrome.com/docs/webstore/service-accounts).
+> **Note:** Service accounts are [supported by Chrome](https://developer.chrome.com/docs/webstore/service-accounts) but no existing GitHub Actions implement them yet. OAuth remains the standard approach.
 
 1. **Create Google Cloud Project**
    - Go to [Google Cloud Console](https://console.cloud.google.com)
    - Create new project (e.g., "Vocabulary Extension CI")
-   - Enable "Chrome Web Store API"
-
-2. **Create Service Account**
-   - IAM & Admin → Service Accounts → Create Service Account
-   - Name: "cws-publisher"
-   - No permissions needed at this stage
-   - Create JSON key and download it
-
-3. **Link to CWS Developer Account**
-   - Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-   - Account → Add service account email
-   - Note: Only one service account per publisher allowed
-
-4. **Update GitHub Workflow** (use service account instead of OAuth)
-   - Store JSON key as `CWS_SERVICE_ACCOUNT_KEY` secret
-   - Modify release.yml to use service account authentication
-
-**Option B: OAuth with Localhost Redirect**
-
-Uses [gcp-refresh-token](https://github.com/nickytonline/gcp-refresh-token) tool (replaces deprecated OOB flow).
-
-1. **Create Google Cloud Project**
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Create new project, enable "Chrome Web Store API"
+   - Search and enable "Chrome Web Store API"
 
 2. **Configure OAuth Consent Screen**
    - APIs & Services → OAuth consent screen
-   - Select "External", enter app name and email
+   - Select "External", click Create
+   - Enter app name and your email (support email)
+   - Add scope: `https://www.googleapis.com/auth/chromewebstore`
+   - Add yourself as test user
 
 3. **Create OAuth Credentials**
    ```
@@ -201,18 +181,22 @@ Uses [gcp-refresh-token](https://github.com/nickytonline/gcp-refresh-token) tool
    Application type: Desktop app
    Name: CI/CD Publisher
    ```
-   Download JSON as `key.json`
+   Download JSON and save as `key.json`
 
 4. **Get Refresh Token**
    ```bash
-   # Run in directory with key.json
+   # Run in directory containing key.json
    npx gcp-refresh-token
    ```
-   Opens browser for OAuth consent. After completion, `key.json` contains all three values.
+   - Opens browser for OAuth consent
+   - Authorize with your Google account
+   - After completion, `key.json` contains `clientId`, `clientSecret`, `refreshToken`
 
 5. **Add Secrets to GitHub**
-   - Go to repo Settings → Secrets and variables → Actions
-   - Add: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`
+   Go to repo Settings → Secrets and variables → Actions → New repository secret:
+   - `CWS_CLIENT_ID` → value from key.json `clientId`
+   - `CWS_CLIENT_SECRET` → value from key.json `clientSecret`
+   - `CWS_REFRESH_TOKEN` → value from key.json `refreshToken`
 
 #### Running a Release
 
