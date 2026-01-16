@@ -1,0 +1,5 @@
+# Lint staged files (fast)
+npx lint-staged
+
+# Type check (catches compile errors)
+npx tsc --noEmit

@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["vitest/globals", "@testing-library/jest-dom", "chrome"]
   },
   "include": ["src"],
   "exclude": ["src/manifest.ts"],

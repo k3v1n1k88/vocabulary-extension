@@ -7,6 +7,7 @@ Complete guide for building, testing, and publishing Vocabulary Builder Chrome E
 - [Prerequisites](#prerequisites)
 - [Build for Production](#build-for-production)
 - [Local Testing](#local-testing)
+- [CI/CD Pipeline](#cicd-pipeline)
 - [Chrome Web Store Publishing](#chrome-web-store-publishing)
 - [Version Management](#version-management)
 - [Release Checklist](#release-checklist)
@@ -107,6 +108,133 @@ Right-click page → Inspect → Console (filter: [VocabExt])
 # Popup logs
 Right-click extension icon → Inspect popup
 ```
+
+---
+
+## CI/CD Pipeline
+
+GitHub Actions automates testing on every push/PR and releases via manual trigger.
+
+### Workflows Overview
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `test.yml` | Push/PR to master | Lint, unit tests, E2E tests |
+| `release.yml` | Manual dispatch | Create GitHub release, optional CWS publish |
+
+### Test Workflow (Automatic)
+
+**No manual setup required.** Runs automatically on:
+- Push to `master`/`main` branch
+- Pull requests targeting `master`/`main`
+
+**Jobs:**
+1. **Lint** - ESLint checks
+2. **Unit Tests** - Vitest with coverage
+3. **E2E Tests** - Playwright with Chromium
+
+### Release Workflow (Manual Setup Required)
+
+#### Step 1: No Setup for Basic Releases
+
+Basic GitHub releases work out-of-the-box:
+- Creates git tag
+- Generates changelog from commits
+- Uploads extension ZIP to GitHub Releases
+
+**To trigger:** Actions → Release → Run workflow → Select release type
+
+#### Step 2: Chrome Web Store Auto-Publish (Optional)
+
+To enable automatic publishing to Chrome Web Store, configure these secrets:
+
+**Required Secrets** (Settings → Secrets → Actions → New repository secret):
+
+| Secret | Description | How to Get |
+|--------|-------------|------------|
+| `EXTENSION_ID` | Your CWS extension ID | CWS Developer Dashboard → Your extension → URL contains ID |
+| `CWS_CLIENT_ID` | Google Cloud OAuth client ID | See below |
+| `CWS_CLIENT_SECRET` | Google Cloud OAuth client secret | See below |
+| `CWS_REFRESH_TOKEN` | OAuth refresh token | See below |
+
+#### Step 3: Generate Chrome Web Store API Credentials
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create new project (e.g., "Vocabulary Extension CI")
+   - Enable "Chrome Web Store API"
+
+2. **Create OAuth Credentials**
+   ```
+   APIs & Services → Credentials → Create Credentials → OAuth client ID
+   Application type: Desktop app
+   Name: CI/CD Publisher
+   ```
+   Save the **Client ID** and **Client Secret**
+
+3. **Get Refresh Token**
+   ```bash
+   # Replace YOUR_CLIENT_ID with actual value
+   # Open this URL in browser:
+   https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob
+
+   # After authorization, you get an authorization code
+   # Exchange it for refresh token:
+   curl -X POST "https://oauth2.googleapis.com/token" \
+     -d "client_id=YOUR_CLIENT_ID" \
+     -d "client_secret=YOUR_CLIENT_SECRET" \
+     -d "code=YOUR_AUTH_CODE" \
+     -d "grant_type=authorization_code" \
+     -d "redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+   ```
+   Save the **refresh_token** from response
+
+4. **Add Secrets to GitHub**
+   - Go to repo Settings → Secrets and variables → Actions
+   - Add each secret with exact names above
+
+#### Running a Release
+
+```bash
+# 1. Bump version locally first
+npm run version:patch  # or version:minor, version:major
+
+# 2. Commit version change
+git add package.json
+git commit -m "chore: bump version to X.X.X"
+git push
+
+# 3. Trigger release workflow
+# GitHub → Actions → Release → Run workflow
+# Select release type and whether to publish to CWS
+```
+
+### Pre-commit Hooks (Local)
+
+Husky runs automatically on commit:
+- **lint-staged** - ESLint fix on staged `.ts/.tsx` files
+- **tsc --noEmit** - TypeScript type checking
+
+First-time setup (automatic via `npm install`):
+```bash
+npm install  # Runs "prepare" script which installs husky
+```
+
+### Commit Message Format
+
+Commitlint enforces [Conventional Commits](https://conventionalcommits.org):
+
+```
+type(scope): description
+
+# Examples:
+feat(popup): add dark mode toggle
+fix(storage): handle quota exceeded error
+docs: update deployment guide
+chore: bump dependencies
+```
+
+**Allowed types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 ---
 

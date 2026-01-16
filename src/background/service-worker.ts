@@ -1,7 +1,7 @@
 import { lookupWordWithTranslation } from '@/shared/dictionary-api'
 import { translateToTargetLanguage, translateText, isPhrase } from '@/shared/translation-service'
 import { initNotifications, scheduleStudyReminder, showDailyReminder } from '@/shared/notifications'
-import type { Message, LookupWordPayload, Word } from '@/types'
+import type { Message, LookupWordPayload, Word, FlashcardData } from '@/types'
 
 // Create context menu on install
 chrome.runtime.onInstalled.addListener(() => {
@@ -116,13 +116,13 @@ async function handleMessage(
         const { word } = message.payload as { word: Word }
         // Save to chrome storage
         const result = await chrome.storage.local.get('vocabulary-storage')
-        let stored: { state: { words: Word[]; flashcards: [string, any][] } } = {
+        let stored: { state: { words: Word[]; flashcards: [string, FlashcardData][] } } = {
           state: { words: [], flashcards: [] }
         }
         if (result['vocabulary-storage']) {
           try {
             stored = JSON.parse(result['vocabulary-storage'])
-          } catch (e) {
+          } catch {
             console.warn('[VocabExt] Corrupted vocabulary storage, using defaults')
           }
         }
@@ -198,7 +198,7 @@ async function handleMessage(
         if (result['vocabulary-storage']) {
           try {
             vocabData = JSON.parse(result['vocabulary-storage'])
-          } catch (e) {
+          } catch {
             console.warn('[VocabExt] Corrupted vocabulary storage in TEST_NOTIFICATION')
           }
         }
@@ -239,7 +239,7 @@ async function handleMessage(
         if (result['stats-storage']) {
           try {
             statsData = JSON.parse(result['stats-storage'])
-          } catch (e) {
+          } catch {
             console.warn('[VocabExt] Corrupted stats storage in TEST_NOTIFICATION')
           }
         }

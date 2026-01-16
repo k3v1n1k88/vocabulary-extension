@@ -362,7 +362,7 @@ function showFloatingButton(selection: Selection) {
           type: 'LOOKUP_SELECTED',
           payload: { text: selectedText }
         })
-      } catch (e) {
+      } catch {
         console.warn('[VocabExt] Extension context invalidated, please refresh page')
       }
     } else if (action === 'speak') {
@@ -371,7 +371,7 @@ function showFloatingButton(selection: Selection) {
           type: 'PLAY_AUDIO',
           payload: { text: selectedText }
         })
-      } catch (e) {
+      } catch {
         console.warn('[VocabExt] Extension context invalidated, please refresh page')
       }
       removeFloatingButton()

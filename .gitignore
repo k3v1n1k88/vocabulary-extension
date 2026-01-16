@@ -8,6 +8,7 @@ pnpm-debug.log*
 # Build output
 dist/
 build/
+vocabulary-extension-*/
 *.zip
 *.crx
 
@@ -48,3 +49,8 @@ Thumbs.db
 
 # Source maps (keep locally for debugging, exclude from commits)
 *.map
+
+# Testing
+playwright-report/
+test-results/
+coverage/

@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      publish_to_store:
+        description: 'Publish to Chrome Web Store'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Run tests first
+      - run: npm run test:unit
+
+      # Get current version from package.json
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      # Build release version
+      - run: npm run build:release
+
+      # Generate changelog from commits
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Save to file for release notes
+          echo "$COMMITS" > /tmp/changelog.txt
+
+          # Format for output (escape newlines)
+          CHANGELOG=$(echo "$COMMITS" | head -20)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Update CHANGELOG.md
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Create new changelog entry
+          NEW_ENTRY="## [$VERSION] - $DATE\n\n$(cat /tmp/changelog.txt)\n\n"
+
+          # Insert after header in CHANGELOG.md
+          if [ -f docs/CHANGELOG.md ]; then
+            sed -i "s/# Changelog/# Changelog\n\n${NEW_ENTRY}/" docs/CHANGELOG.md
+          fi
+
+      # Create zip for Chrome Web Store
+      - name: Package extension
+        run: |
+          cd dist && zip -r ../vocabulary-extension-v${{ steps.version.outputs.version }}.zip .
+
+      # Commit changelog update
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/CHANGELOG.md || true
+          git diff --staged --quiet || git commit -m "docs: update changelog for v${{ steps.version.outputs.version }}"
+          git push
+
+      # Create git tag
+      - name: Create tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      # Create GitHub release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            Download `vocabulary-extension-v${{ steps.version.outputs.version }}.zip` and load as unpacked extension, or install from Chrome Web Store.
+          files: |
+            vocabulary-extension-v${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+
+      # Publish to Chrome Web Store (optional)
+      - name: Publish to Chrome Web Store
+        if: ${{ inputs.publish_to_store }}
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: vocabulary-extension-v${{ steps.version.outputs.version }}.zip
+          extension-id: ${{ secrets.EXTENSION_ID }}
+          client-id: ${{ secrets.CWS_CLIENT_ID }}
+          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
+          publish: true
