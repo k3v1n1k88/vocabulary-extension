@@ -45,3 +45,6 @@ Thumbs.db
 # Chrome extension specific
 *.pem
 *.key
+
+# Source maps (keep locally for debugging, exclude from commits)
+*.map
