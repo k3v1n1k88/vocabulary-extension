@@ -1,7 +1,7 @@
 ---
 title: "Fix MacOS Chrome Notifications"
 description: "Fix notifications not appearing on MacOS due to unsupported options"
-status: pending
+status: completed
 priority: P1
 effort: 30m
 branch: master

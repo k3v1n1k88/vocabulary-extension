@@ -14,6 +14,7 @@ export interface Word {
   lastReviewed?: number
   source?: string
   isFreeTranslation?: boolean // true = free API, false = AI translation
+  translationError?: string // error message if translation failed
 }
 
 // Spaced repetition (SM-2) types

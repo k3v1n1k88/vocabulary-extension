@@ -1,7 +1,7 @@
 ---
 title: "Multi-LLM Provider Support"
 description: "Add Gemini and Grok as translation provider options alongside OpenAI"
-status: pending
+status: completed
 priority: P2
 effort: 4h
 branch: master

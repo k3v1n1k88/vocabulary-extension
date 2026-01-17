@@ -1,6 +1,24 @@
 import type { Word, TranslationResult } from '@/types'
 import { SUPPORTED_LANGUAGES } from '@/types'
 
+/**
+ * Escape HTML special characters to prevent XSS attacks.
+ * Used for all user-controlled content inserted via innerHTML.
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+/**
+ * Escape HTML for use in data attributes.
+ * Escapes quotes in addition to HTML special characters.
+ */
+function escapeAttr(text: string): string {
+  return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 // Element references
 let tooltip: HTMLDivElement | null = null
 let floatingButton: HTMLDivElement | null = null
@@ -8,10 +26,13 @@ let floatingButton: HTMLDivElement | null = null
 // Store absolute position for tooltip positioning after menu click
 let savedTooltipPosition: { left: number; top: number } | null = null
 
-// Cached target language for floating menu display
+// Cached languages for floating menu display and TTS
 let cachedTargetLanguage = 'Vietnamese'
+let cachedSourceLanguage = 'English'
+let cachedSourceLangCode = 'en'
+let cachedUseLLMTranslation = false // AI mode flag
 
-// Load target language from storage
+// Load languages from storage
 chrome.storage.local.get('settings-storage', (result) => {
   if (result['settings-storage']) {
     try {
@@ -22,6 +43,12 @@ chrome.storage.local.get('settings-storage', (result) => {
       if (targetLang) {
         cachedTargetLanguage = targetLang.name
       }
+      cachedSourceLangCode = settings.sourceLanguage || 'en'
+      const sourceLang = SUPPORTED_LANGUAGES.find(l => l.code === cachedSourceLangCode)
+      if (sourceLang) {
+        cachedSourceLanguage = sourceLang.name
+      }
+      cachedUseLLMTranslation = settings.useLLMTranslation ?? false
     } catch (e) {
       console.warn('[VocabExt] Failed to parse settings:', e)
     }
@@ -39,6 +66,12 @@ chrome.storage.onChanged.addListener((changes) => {
       if (targetLang) {
         cachedTargetLanguage = targetLang.name
       }
+      cachedSourceLangCode = settings.sourceLanguage || 'en'
+      const sourceLang = SUPPORTED_LANGUAGES.find(l => l.code === cachedSourceLangCode)
+      if (sourceLang) {
+        cachedSourceLanguage = sourceLang.name
+      }
+      cachedUseLLMTranslation = settings.useLLMTranslation ?? false
     } catch (e) {
       console.warn('[VocabExt] Failed to parse settings change:', e)
     }
@@ -274,10 +307,32 @@ function showFloatingButton(selection: Selection) {
   const selectedText = selection.toString().trim()
   const isPhrase = selectedText.split(/\s+/).length > 1
 
-  // Build language options HTML
-  const langOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
+  // Build language options HTML for source and target
+  const sourceLangOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
+    `<div class="vocab-lang-option${lang.name === cachedSourceLanguage ? ' active' : ''}" data-lang-code="${lang.code}" data-lang-name="${lang.name}">${lang.nativeName} (${lang.name})</div>`
+  ).join('')
+  const targetLangOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
     `<div class="vocab-lang-option${lang.name === cachedTargetLanguage ? ' active' : ''}" data-lang-code="${lang.code}" data-lang-name="${lang.name}">${lang.nativeName} (${lang.name})</div>`
   ).join('')
+
+  // AI mode: hide source language dropdown (LLM auto-detects), show AI icon
+  // Non-AI mode: show both source and target dropdowns
+  const sourceLangHtml = cachedUseLLMTranslation
+    ? '' // AI mode - no source dropdown needed
+    : `<div class="vocab-menu-item vocab-source-lang-trigger" data-action="change-source-lang" title="Source language">
+        <span class="vocab-lang-short">${cachedSourceLanguage.slice(0, 2).toUpperCase()}</span>
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <span class="vocab-lang-arrow">→</span>`
+
+  const aiIconHtml = cachedUseLLMTranslation
+    ? `<span class="vocab-ai-badge" title="AI-powered translation">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        AI
+      </span>`
+    : ''
 
   floatingButton = document.createElement('div')
   floatingButton.id = 'vocab-floating-menu'
@@ -290,6 +345,7 @@ function showFloatingButton(selection: Selection) {
           <path d="M21 21l-4.35-4.35"/>
         </svg>
         <span>${isPhrase ? 'Translate' : 'Look up'}</span>
+        ${aiIconHtml}
       </div>
       <div class="vocab-menu-item" data-action="speak" title="Speak">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -297,15 +353,15 @@ function showFloatingButton(selection: Selection) {
           <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
         </svg>
       </div>
-      ${isPhrase ? `
       <div class="vocab-menu-divider"></div>
-      <div class="vocab-menu-item vocab-lang-trigger" data-action="change-lang" title="Change language">
+      ${sourceLangHtml}
+      <div class="vocab-menu-item vocab-target-lang-trigger" data-action="change-target-lang" title="Target language">
         <span class="vocab-lang-short">${cachedTargetLanguage.slice(0, 2).toUpperCase()}</span>
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
       </div>
-      ` : ''}
     </div>
-    ${isPhrase ? `<div class="vocab-lang-dropdown" style="display:none;">${langOptionsHtml}</div>` : ''}
+    ${cachedUseLLMTranslation ? '' : `<div class="vocab-source-lang-dropdown vocab-lang-dropdown" style="display:none;">${sourceLangOptionsHtml}</div>`}
+    <div class="vocab-target-lang-dropdown vocab-lang-dropdown" style="display:none;">${targetLangOptionsHtml}</div>
   `
 
   // Position near selection
@@ -324,19 +380,39 @@ function showFloatingButton(selection: Selection) {
     z-index: 999998;
   `
 
+  // Track which dropdown is open (source or target)
+  let activeDropdown: 'source' | 'target' | null = null
+
   // Handle menu clicks - use captured selectedText directly
   floatingButton.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
     const clickedEl = e.target as HTMLElement
 
-    // Check if clicked on language trigger or its children
-    const langTrigger = clickedEl.closest('.vocab-lang-trigger')
-    if (langTrigger) {
-      const dropdown = floatingButton?.querySelector('.vocab-lang-dropdown') as HTMLElement
-      if (dropdown) {
-        const isVisible = dropdown.style.display !== 'none'
-        dropdown.style.display = isVisible ? 'none' : 'block'
+    // Check if clicked on source language trigger
+    const sourceLangTrigger = clickedEl.closest('.vocab-source-lang-trigger')
+    if (sourceLangTrigger) {
+      const sourceDropdown = floatingButton?.querySelector('.vocab-source-lang-dropdown') as HTMLElement
+      const targetDropdown = floatingButton?.querySelector('.vocab-target-lang-dropdown') as HTMLElement
+      if (sourceDropdown) {
+        const isVisible = sourceDropdown.style.display !== 'none'
+        sourceDropdown.style.display = isVisible ? 'none' : 'block'
+        if (targetDropdown) targetDropdown.style.display = 'none'
+        activeDropdown = isVisible ? null : 'source'
+      }
+      return
+    }
+
+    // Check if clicked on target language trigger
+    const targetLangTrigger = clickedEl.closest('.vocab-target-lang-trigger')
+    if (targetLangTrigger) {
+      const sourceDropdown = floatingButton?.querySelector('.vocab-source-lang-dropdown') as HTMLElement
+      const targetDropdown = floatingButton?.querySelector('.vocab-target-lang-dropdown') as HTMLElement
+      if (targetDropdown) {
+        const isVisible = targetDropdown.style.display !== 'none'
+        targetDropdown.style.display = isVisible ? 'none' : 'block'
+        if (sourceDropdown) sourceDropdown.style.display = 'none'
+        activeDropdown = isVisible ? null : 'target'
       }
       return
     }
@@ -347,21 +423,39 @@ function showFloatingButton(selection: Selection) {
       const langCode = langOption.dataset.langCode
       const langName = langOption.dataset.langName
       if (langCode && langName) {
-        // Update cached language
-        cachedTargetLanguage = langName
-        // Save to storage
-        saveTargetLanguage(langCode)
-        // Update UI
-        const trigger = floatingButton?.querySelector('.vocab-lang-trigger')
-        if (trigger) {
-          trigger.innerHTML = `${langName} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>`
+        if (activeDropdown === 'source') {
+          // Update source language
+          cachedSourceLanguage = langName
+          cachedSourceLangCode = langCode
+          saveSourceLanguage(langCode)
+          // Update UI
+          const trigger = floatingButton?.querySelector('.vocab-source-lang-trigger .vocab-lang-short')
+          if (trigger) {
+            trigger.textContent = langName.slice(0, 2).toUpperCase()
+          }
+          // Update active state in source dropdown
+          floatingButton?.querySelectorAll('.vocab-source-lang-dropdown .vocab-lang-option').forEach(opt => opt.classList.remove('active'))
+          langOption.classList.add('active')
+          // Hide dropdown
+          const dropdown = floatingButton?.querySelector('.vocab-source-lang-dropdown') as HTMLElement
+          if (dropdown) dropdown.style.display = 'none'
+        } else if (activeDropdown === 'target') {
+          // Update target language
+          cachedTargetLanguage = langName
+          saveTargetLanguage(langCode)
+          // Update UI
+          const trigger = floatingButton?.querySelector('.vocab-target-lang-trigger .vocab-lang-short')
+          if (trigger) {
+            trigger.textContent = langName.slice(0, 2).toUpperCase()
+          }
+          // Update active state in target dropdown
+          floatingButton?.querySelectorAll('.vocab-target-lang-dropdown .vocab-lang-option').forEach(opt => opt.classList.remove('active'))
+          langOption.classList.add('active')
+          // Hide dropdown
+          const dropdown = floatingButton?.querySelector('.vocab-target-lang-dropdown') as HTMLElement
+          if (dropdown) dropdown.style.display = 'none'
         }
-        // Update active state
-        floatingButton?.querySelectorAll('.vocab-lang-option').forEach(opt => opt.classList.remove('active'))
-        langOption.classList.add('active')
-        // Hide dropdown
-        const dropdown = floatingButton?.querySelector('.vocab-lang-dropdown') as HTMLElement
-        if (dropdown) dropdown.style.display = 'none'
+        activeDropdown = null
       }
       return
     }
@@ -385,7 +479,17 @@ function showFloatingButton(selection: Selection) {
       try {
         chrome.runtime.sendMessage({
           type: 'PLAY_AUDIO',
-          payload: { text: selectedText }
+          payload: { text: selectedText, lang: cachedSourceLangCode || 'en' }
+        }, async (response) => {
+          if (response?.success && response.audioDataUrl) {
+            try {
+              await playGoogleTTSAudio(response.audioDataUrl)
+            } catch {
+              showTTSError('Audio playback failed. Check your internet connection.')
+            }
+          } else if (response?.error) {
+            showTTSError(response.error)
+          }
         })
       } catch {
         console.warn('[VocabExt] Extension context invalidated, please refresh page')
@@ -458,14 +562,27 @@ function showLoadingTooltip(text: string, isPhrase: boolean) {
     left = Math.max(10, window.innerWidth - maxWidth - 20)
   }
 
+  // AI badge for loading state
+  const loadingAiBadge = cachedUseLLMTranslation
+    ? `<span class="vocab-ai-badge" title="AI-powered translation">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+           <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+           <circle cx="7.5" cy="14.5" r="1.5"/>
+           <circle cx="16.5" cy="14.5" r="1.5"/>
+         </svg>
+         AI
+       </span>`
+    : ''
+
   tooltip = document.createElement('div')
   tooltip.id = 'vocabulary-tooltip'
   tooltip.innerHTML = `
     <div class="vocab-tooltip-content">
       <div class="vocab-header">
         <div class="vocab-word-row">
-          <span class="vocab-word">${isPhrase ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : text}</span>
+          <span class="vocab-word">${escapeHtml(isPhrase ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : text)}</span>
           <span class="vocab-type-badge">${isPhrase ? 'Translating...' : 'Looking up...'}</span>
+          ${loadingAiBadge}
         </div>
       </div>
       <div class="vocab-loading">
@@ -568,33 +685,42 @@ function createTooltipHTML(word: Word): string {
   const synonymsHTML = word.synonyms?.length
     ? `<div class="vocab-synonyms">
         <span class="vocab-label">Synonyms:</span>
-        ${word.synonyms.map((s) => `<span class="vocab-tag vocab-tag-syn">${s}</span>`).join('')}
+        ${word.synonyms.map((s) => `<span class="vocab-tag vocab-tag-syn">${escapeHtml(s)}</span>`).join('')}
        </div>`
     : ''
 
   const antonymsHTML = word.antonyms?.length
     ? `<div class="vocab-antonyms">
         <span class="vocab-label">Antonyms:</span>
-        ${word.antonyms.map((a) => `<span class="vocab-tag vocab-tag-ant">${a}</span>`).join('')}
+        ${word.antonyms.map((a) => `<span class="vocab-tag vocab-tag-ant">${escapeHtml(a)}</span>`).join('')}
        </div>`
     : ''
 
   const exampleHTML = word.examples?.[0]
     ? `<div class="vocab-example">
         <span class="vocab-label">Example:</span>
-        <em>"${word.examples[0]}"</em>
+        <em>"${escapeHtml(word.examples[0])}"</em>
        </div>`
     : ''
 
-  const translationHTML = word.vietnameseTranslation
+  // Translation or error message
+  const translationHTML = word.translationError
+    ? `<div class="vocab-translation-error">
+        <span class="vocab-label">⚠️ Translation Error:</span>
+        <span class="vocab-error-msg">${escapeHtml(word.translationError)}</span>
+        <a href="#" class="vocab-settings-link" data-action="open-settings">Open Settings →</a>
+       </div>`
+    : word.vietnameseTranslation
     ? `<div class="vocab-vietnamese">
         <span class="vocab-label">Translation:</span>
-        ${word.vietnameseTranslation}
+        ${escapeHtml(word.vietnameseTranslation)}
        </div>`
     : ''
 
-  // Translation badge: AI or Free with upsell hint
-  const translationBadgeHTML = word.isFreeTranslation === false
+  // Translation badge: AI or Free (just badge, no upsell in header)
+  const translationBadgeHTML = word.translationError
+    ? '' // No badge if there's an error
+    : word.isFreeTranslation === false
     ? `<span class="vocab-ai-badge" title="AI-powered translation">
          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
@@ -604,9 +730,13 @@ function createTooltipHTML(word: Word): string {
          AI
        </span>`
     : word.isFreeTranslation === true
-    ? `<div class="vocab-free-hint">
-         <span class="vocab-free-badge">Free</span>
-         <a href="#" class="vocab-ai-hint" data-action="open-settings">Get better results with AI →</a>
+    ? `<span class="vocab-free-badge">Free</span>`
+    : ''
+
+  // AI upsell hint (shown below content for free users, not if there's an error)
+  const aiUpsellHTML = word.isFreeTranslation === true && !word.translationError
+    ? `<div class="vocab-ai-upsell">
+         <a href="#" class="vocab-ai-hint" data-action="open-settings">✨ Get better results with AI →</a>
        </div>`
     : ''
 
@@ -614,9 +744,9 @@ function createTooltipHTML(word: Word): string {
     <div class="vocab-tooltip-content">
       <div class="vocab-header">
         <div class="vocab-word-row">
-          <span class="vocab-word">${word.word}</span>
+          <span class="vocab-word">${escapeHtml(word.word)}</span>
           ${translationBadgeHTML}
-          <button class="vocab-audio-btn" data-word="${word.word}" title="Play pronunciation">
+          <button class="vocab-audio-btn" data-word="${escapeAttr(word.word)}" title="Play pronunciation">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 5L6 9H2v6h4l5 4V5z"/>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
@@ -624,19 +754,21 @@ function createTooltipHTML(word: Word): string {
             </svg>
           </button>
         </div>
-        ${word.pronunciation ? `<span class="vocab-pronunciation">${word.pronunciation}</span>` : ''}
-        ${word.partOfSpeech ? `<span class="vocab-pos">${word.partOfSpeech}</span>` : ''}
+        ${word.pronunciation ? `<span class="vocab-pronunciation">${escapeHtml(word.pronunciation)}</span>` : ''}
+        ${word.partOfSpeech ? `<span class="vocab-pos">${escapeHtml(word.partOfSpeech)}</span>` : ''}
       </div>
 
       <div class="vocab-definition">
         <span class="vocab-label">Definition:</span>
-        ${word.definition}
+        ${escapeHtml(word.definition)}
       </div>
 
       ${translationHTML}
       ${exampleHTML}
       ${synonymsHTML}
       ${antonymsHTML}
+
+      ${aiUpsellHTML}
 
       <div class="vocab-actions">
         <button class="vocab-save-btn" data-word-id="${word.id}">
@@ -707,12 +839,9 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
     `<div class="vocab-lang-option${lang.name === cachedTargetLanguage ? ' active' : ''}" data-lang-code="${lang.code}" data-lang-name="${lang.name}">${lang.nativeName}</div>`
   ).join('')
 
-  // Translation source badge: AI or Free
+  // Translation source badge: AI or Free (just badge, no upsell link in header)
   const translationBadgeHtml = translation.isFreeTranslation
-    ? `<div class="vocab-free-hint">
-         <span class="vocab-free-badge">Free</span>
-         <a href="#" class="vocab-ai-hint" data-action="open-settings">Get better results with AI →</a>
-       </div>`
+    ? `<span class="vocab-free-badge">Free</span>`
     : `<span class="vocab-ai-badge" title="AI-powered translation">
          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
@@ -721,6 +850,13 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
          </svg>
          AI
        </span>`
+
+  // AI upsell hint (shown below translation for free users)
+  const aiUpsellHtml = translation.isFreeTranslation
+    ? `<div class="vocab-ai-upsell">
+         <a href="#" class="vocab-ai-hint" data-action="open-settings">✨ Get better results with AI →</a>
+       </div>`
+    : ''
 
   // Source language dropdown for free translations (since no auto-detect)
   const sourceLangCode = translation.sourceLangCode || 'en'
@@ -731,29 +867,31 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
 
   // Source language: dropdown for free, static text for LLM
   const sourceLangHtml = translation.isFreeTranslation
-    ? `<span class="vocab-source-lang-trigger" data-original-text="${encodeURIComponent(translation.originalText)}" data-target-code="${targetLangCode}">${translation.sourceLanguage} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
+    ? `<span class="vocab-source-lang-trigger" data-original-text="${encodeURIComponent(translation.originalText)}" data-target-code="${escapeAttr(targetLangCode)}">${escapeHtml(translation.sourceLanguage)} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
        <div class="vocab-source-lang-dropdown" style="display:none;">${sourceLangOptionsHtml}</div>`
-    : `<span>${translation.sourceLanguage}</span>`
+    : `<span>${escapeHtml(translation.sourceLanguage)}</span>`
 
   return `
     <div class="vocab-tooltip-content vocab-translation">
       <div class="vocab-header">
         <div class="vocab-word-row">
-          <span class="vocab-word">${translation.originalText}</span>
+          <span class="vocab-word">${escapeHtml(translation.originalText)}</span>
           <span class="vocab-type-badge">${typeLabel}</span>
           ${translationBadgeHtml}
         </div>
         <span class="vocab-lang-info">
           ${sourceLangHtml} →
-          <span class="vocab-target-lang-trigger">${translation.targetLanguage} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
+          <span class="vocab-target-lang-trigger">${escapeHtml(translation.targetLanguage)} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
           <div class="vocab-target-lang-dropdown" style="display:none;">${targetLangOptionsHtml}</div>
         </span>
       </div>
 
       <div class="vocab-translation-result">
         <span class="vocab-label">Translation:</span>
-        <div class="vocab-translated-text">${translation.translatedText.replace(/\n/g, '<br>')}</div>
+        <div class="vocab-translated-text">${escapeHtml(translation.translatedText).replace(/\n/g, '<br>')}</div>
       </div>
+
+      ${aiUpsellHtml}
 
       <div class="vocab-actions">
         <button class="vocab-copy-btn" title="Copy translation">
@@ -763,7 +901,7 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
           </svg>
           Copy
         </button>
-        <button class="vocab-audio-btn" data-text="${translation.originalText}" title="Play pronunciation">
+        <button class="vocab-audio-btn" data-text="${escapeAttr(translation.originalText)}" title="Play pronunciation">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 5L6 9H2v6h4l5 4V5z"/>
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
@@ -879,13 +1017,23 @@ function setupTranslationEventListeners(translation: TranslationResult) {
     }
   })
 
-  // Audio button
+  // Audio button - pass source language for correct TTS
   const audioBtn = tooltip.querySelector('.vocab-audio-btn')
   audioBtn?.addEventListener('click', (e) => {
     e.stopPropagation()
     chrome.runtime.sendMessage({
       type: 'PLAY_AUDIO',
-      payload: { text: translation.originalText }
+      payload: { text: translation.originalText, lang: translation.sourceLangCode || 'en' }
+    }, async (response) => {
+      if (response?.success && response.audioDataUrl) {
+        try {
+          await playGoogleTTSAudio(response.audioDataUrl)
+        } catch {
+          showTTSError('Audio playback failed. Check your internet connection.')
+        }
+      } else if (response?.error) {
+        showTTSError(response.error)
+      }
     })
   })
 
@@ -988,7 +1136,7 @@ function showErrorTooltip(message: string) {
   tooltip.id = 'vocabulary-tooltip'
   tooltip.innerHTML = `
     <div class="vocab-tooltip-content vocab-error">
-      <p>${message}</p>
+      <p>${escapeHtml(message)}</p>
       ${isApiKeyError ? `
         <button class="vocab-settings-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1029,13 +1177,23 @@ function showErrorTooltip(message: string) {
 function setupTooltipEventListeners(word: Word) {
   if (!tooltip) return
 
-  // Audio button
+  // Audio button - use user's configured source language for TTS
   const audioBtn = tooltip.querySelector('.vocab-audio-btn')
   audioBtn?.addEventListener('click', (e) => {
     e.stopPropagation()
     chrome.runtime.sendMessage({
       type: 'PLAY_AUDIO',
-      payload: { text: word.word, audioUrl: word.audioUrl }
+      payload: { text: word.word, lang: cachedSourceLangCode || 'en' }
+    }, async (response) => {
+      if (response?.success && response.audioDataUrl) {
+        try {
+          await playGoogleTTSAudio(response.audioDataUrl)
+        } catch {
+          showTTSError('Audio playback failed. Check your internet connection.')
+        }
+      } else if (response?.error) {
+        showTTSError(response.error)
+      }
     })
   })
 
@@ -1043,6 +1201,16 @@ function setupTooltipEventListeners(word: Word) {
   if (word.isFreeTranslation) {
     const aiHint = tooltip.querySelector('.vocab-ai-hint')
     aiHint?.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', payload: { hash: 'settings-ai-translation' } })
+    })
+  }
+
+  // Settings link for translation errors - open settings to API key section
+  if (word.translationError) {
+    const settingsLink = tooltip.querySelector('.vocab-settings-link')
+    settingsLink?.addEventListener('click', (e) => {
       e.preventDefault()
       e.stopPropagation()
       chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', payload: { hash: 'settings-ai-translation' } })
@@ -1090,6 +1258,59 @@ function removeTooltip() {
   }
   // Clear saved position
   savedTooltipPosition = null
+}
+
+// Global audio element for Google TTS playback
+let ttsAudio: HTMLAudioElement | null = null
+
+// Play audio from Google Translate TTS URL
+function playGoogleTTSAudio(audioUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Stop any existing audio
+    if (ttsAudio) {
+      ttsAudio.pause()
+      ttsAudio.currentTime = 0
+    }
+
+    ttsAudio = new Audio(audioUrl)
+    ttsAudio.onended = () => resolve()
+    ttsAudio.onerror = () => reject(new Error('Audio playback failed'))
+    ttsAudio.play().catch(reject)
+  })
+}
+
+// Show TTS error as a temporary toast notification
+function showTTSError(message: string) {
+  // Remove any existing TTS error toast
+  const existing = document.getElementById('vocab-tts-error')
+  if (existing) existing.remove()
+
+  const toast = document.createElement('div')
+  toast.id = 'vocab-tts-error'
+  toast.innerHTML = `
+    <div style="
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      z-index: 999999;
+      max-width: 400px;
+      text-align: center;
+    ">
+      <span style="margin-right: 8px;">🔇</span>${escapeHtml(message)}
+    </div>
+  `
+  document.body.appendChild(toast)
+
+  // Auto-remove after 5 seconds
+  setTimeout(() => toast.remove(), 5000)
 }
 
 console.log('Vocabulary Builder content script loaded')

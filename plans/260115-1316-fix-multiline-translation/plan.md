@@ -1,7 +1,7 @@
 ---
 title: "Fix Multi-line Translation Truncation"
 description: "Fix regex pattern truncating LLM translations at first newline"
-status: pending
+status: completed
 priority: P1
 effort: 30m
 branch: master

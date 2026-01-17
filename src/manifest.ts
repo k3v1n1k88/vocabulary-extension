@@ -10,7 +10,6 @@ export default defineManifest({
     'storage',
     'contextMenus',
     'activeTab',
-    'tts',
     'notifications',
     'alarms'
   ],
@@ -21,7 +20,8 @@ export default defineManifest({
     'https://api.dictionaryapi.dev/*',
     'https://api.openai.com/*',
     'https://generativelanguage.googleapis.com/*',
-    'https://api.x.ai/*'
+    'https://api.x.ai/*',
+    'https://translate.google.com/*'
   ],
 
   background: {

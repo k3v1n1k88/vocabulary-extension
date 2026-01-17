@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isPhrase } from './translation-service'
+import { isPhrase, languageNameToCode } from './translation-service'
 
 describe('isPhrase', () => {
   describe('single words', () => {
@@ -49,6 +49,54 @@ describe('isPhrase', () => {
 
     it('handles newlines as word separators', () => {
       expect(isPhrase('hello\nworld')).toBe(true)
+    })
+  })
+})
+
+describe('languageNameToCode', () => {
+  describe('exact matches', () => {
+    it('returns correct code for English', () => {
+      expect(languageNameToCode('english')).toBe('en')
+      expect(languageNameToCode('English')).toBe('en')
+    })
+
+    it('returns correct code for Vietnamese', () => {
+      expect(languageNameToCode('vietnamese')).toBe('vi')
+      expect(languageNameToCode('Vietnamese')).toBe('vi')
+    })
+
+    it('returns correct code for Asian languages', () => {
+      expect(languageNameToCode('chinese')).toBe('zh')
+      expect(languageNameToCode('japanese')).toBe('ja')
+      expect(languageNameToCode('korean')).toBe('ko')
+      expect(languageNameToCode('thai')).toBe('th')
+    })
+
+    it('returns correct code for European languages', () => {
+      expect(languageNameToCode('spanish')).toBe('es')
+      expect(languageNameToCode('french')).toBe('fr')
+      expect(languageNameToCode('german')).toBe('de')
+      expect(languageNameToCode('portuguese')).toBe('pt')
+      expect(languageNameToCode('russian')).toBe('ru')
+    })
+  })
+
+  describe('partial matches', () => {
+    it('handles language with suffix', () => {
+      expect(languageNameToCode('Thai language')).toBe('th')
+      expect(languageNameToCode('Vietnamese (Auto-detected)')).toBe('vi')
+    })
+  })
+
+  describe('edge cases', () => {
+    it('returns en for unknown language', () => {
+      expect(languageNameToCode('unknown')).toBe('en')
+      expect(languageNameToCode('')).toBe('en')
+    })
+
+    it('is case insensitive', () => {
+      expect(languageNameToCode('ENGLISH')).toBe('en')
+      expect(languageNameToCode('ViEtNaMeSe')).toBe('vi')
     })
   })
 })

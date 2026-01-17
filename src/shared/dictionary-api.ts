@@ -111,6 +111,7 @@ export async function translateWord(word: string): Promise<{
   synonyms?: string[]
   antonyms?: string[]
   isFreeTranslation?: boolean
+  error?: string
 }> {
   try {
     const result = await llmTranslate(word)
@@ -121,9 +122,14 @@ export async function translateWord(word: string): Promise<{
       isFreeTranslation: result.isFreeTranslation
     }
   } catch (error) {
-    // If translation fails, return placeholder
-    console.warn('Translation failed, using placeholder:', error)
-    return { translation: `[Translation failed]`, isFreeTranslation: true }
+    // Propagate error message for display to user
+    const errorMsg = error instanceof Error ? error.message : 'Translation failed'
+    console.warn('Translation failed:', errorMsg)
+    return {
+      translation: '',
+      error: errorMsg,
+      isFreeTranslation: false
+    }
   }
 }
 
@@ -139,6 +145,16 @@ export async function lookupWordWithTranslation(word: string): Promise<Word | nu
   }
 
   const translationResult = await translateWord(word)
+
+  // If translation had an error, propagate it
+  if (translationResult.error) {
+    return {
+      ...wordData,
+      vietnameseTranslation: '',
+      translationError: translationResult.error,
+      isFreeTranslation: false
+    }
+  }
 
   // Merge synonyms: use dictionary's, supplement with OpenAI's
   const mergedSynonyms = wordData.synonyms?.length

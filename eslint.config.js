@@ -48,6 +48,8 @@ export default [
         Event: 'readonly',
         // Audio
         Audio: 'readonly',
+        HTMLAudioElement: 'readonly',
+        FileReader: 'readonly',
         SpeechSynthesisUtterance: 'readonly',
         speechSynthesis: 'readonly',
         // JS built-ins

@@ -85,7 +85,9 @@
 }
 
 /* Language trigger with dropdown arrow */
-.vocab-lang-trigger {
+.vocab-lang-trigger,
+.vocab-source-lang-trigger,
+.vocab-target-lang-trigger {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -97,12 +99,23 @@
   transition: all 0.15s;
 }
 
-.vocab-lang-trigger:hover {
+.vocab-lang-trigger:hover,
+.vocab-source-lang-trigger:hover,
+.vocab-target-lang-trigger:hover {
   background: #dbeafe;
 }
 
-.vocab-lang-trigger svg {
+.vocab-lang-trigger svg,
+.vocab-source-lang-trigger svg,
+.vocab-target-lang-trigger svg {
   opacity: 0.6;
+}
+
+/* Language arrow between source and target */
+.vocab-lang-arrow {
+  color: #9ca3af;
+  font-size: 12px;
+  margin: 0 2px;
 }
 
 /* Language dropdown */
@@ -272,6 +285,41 @@
   border-radius: 8px;
   margin-bottom: 12px;
   color: #92400e;
+}
+
+/* Translation error message */
+.vocab-translation-error {
+  background: #fef2f2;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.vocab-translation-error .vocab-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.vocab-translation-error .vocab-error-msg {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #dc2626;
+}
+
+.vocab-translation-error .vocab-settings-link {
+  display: inline-block;
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.vocab-translation-error .vocab-settings-link:hover {
+  text-decoration: underline;
 }
 
 .vocab-example {
@@ -488,6 +536,18 @@
 .vocab-ai-hint:hover {
   opacity: 1;
   text-decoration: underline;
+}
+
+/* AI upsell section (below translation) */
+.vocab-ai-upsell {
+  text-align: center;
+  padding: 8px 0;
+  border-top: 1px dashed #e5e7eb;
+  margin-top: 8px;
+}
+
+.vocab-ai-upsell .vocab-ai-hint {
+  font-size: 12px;
 }
 
 /* Source language trigger (dropdown) for free translation */

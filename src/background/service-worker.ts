@@ -183,13 +183,41 @@ async function handleMessage(
       }
 
       case 'PLAY_AUDIO': {
-        const { text } = message.payload as { text: string }
-        // Use chrome.tts API for background audio
-        chrome.tts.speak(text, {
-          lang: 'en-US',
-          rate: 0.9
-        })
-        sendResponse({ success: true })
+        const { text, lang } = message.payload as { text: string; lang?: string }
+
+        // Map our lang codes to Google Translate codes
+        const googleLangMap: Record<string, string> = {
+          'en': 'en', 'vi': 'vi', 'th': 'th', 'zh': 'zh-CN',
+          'ja': 'ja', 'ko': 'ko', 'es': 'es', 'fr': 'fr',
+          'de': 'de', 'pt': 'pt', 'ru': 'ru', 'id': 'id'
+        }
+        const googleLang = googleLangMap[lang || 'en'] || 'en'
+
+        // Build Google Translate TTS URL (limit text to 200 chars)
+        const encodedText = encodeURIComponent(text.slice(0, 200))
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${googleLang}&q=${encodedText}`
+
+        // Fetch audio in service worker (has host_permission) and return as data URL
+        // Content script can't fetch directly due to CORS
+        try {
+          const response = await fetch(audioUrl)
+          if (!response.ok) {
+            sendResponse({ success: false, error: 'Failed to fetch audio' })
+            break
+          }
+          const blob = await response.blob()
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            sendResponse({ success: true, audioDataUrl: reader.result as string })
+          }
+          reader.onerror = () => {
+            sendResponse({ success: false, error: 'Failed to process audio' })
+          }
+          reader.readAsDataURL(blob)
+        } catch (error) {
+          console.error('[VocabExt] TTS fetch error:', error)
+          sendResponse({ success: false, error: 'Network error fetching audio' })
+        }
         break
       }
 
