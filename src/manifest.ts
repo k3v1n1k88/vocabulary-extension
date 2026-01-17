@@ -15,6 +15,15 @@ export default defineManifest({
     'alarms'
   ],
 
+  // Host permissions for API calls (required in MV3)
+  host_permissions: [
+    'https://api.mymemory.translated.net/*',
+    'https://api.dictionaryapi.dev/*',
+    'https://api.openai.com/*',
+    'https://generativelanguage.googleapis.com/*',
+    'https://api.x.ai/*'
+  ],
+
   background: {
     service_worker: 'src/background/service-worker.ts',
     type: 'module'

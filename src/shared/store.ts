@@ -241,6 +241,8 @@ const defaultSettings: UserSettings = {
   lookupShortcutEnabled: false, // disabled by default = floating menu mode
   lookupShortcut: 'Ctrl+Shift+D',
   targetLanguage: 'vi',
+  sourceLanguage: 'en', // default source for free translation
+  useLLMTranslation: false, // disabled by default, use free API
   llmProvider: 'openai' // backward compatible default
 }
 

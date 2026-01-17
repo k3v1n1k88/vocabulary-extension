@@ -103,25 +103,27 @@ export async function lookupWord(word: string): Promise<Word | null> {
 }
 
 /**
- * Translate word using OpenAI to user's configured language
+ * Translate word using translation service
  * Returns full translation result including synonyms/antonyms
  */
 export async function translateWord(word: string): Promise<{
   translation: string
   synonyms?: string[]
   antonyms?: string[]
+  isFreeTranslation?: boolean
 }> {
   try {
     const result = await llmTranslate(word)
     return {
       translation: result.translatedText,
       synonyms: result.synonyms,
-      antonyms: result.antonyms
+      antonyms: result.antonyms,
+      isFreeTranslation: result.isFreeTranslation
     }
   } catch (error) {
-    // If OpenAI fails (no API key, etc.), return placeholder
+    // If translation fails, return placeholder
     console.warn('Translation failed, using placeholder:', error)
-    return { translation: `[API key required]` }
+    return { translation: `[Translation failed]`, isFreeTranslation: true }
   }
 }
 
@@ -152,6 +154,7 @@ export async function lookupWordWithTranslation(word: string): Promise<Word | nu
     ...wordData,
     vietnameseTranslation: translationResult.translation,
     synonyms: mergedSynonyms,
-    antonyms: mergedAntonyms
+    antonyms: mergedAntonyms,
+    isFreeTranslation: translationResult.isFreeTranslation
   }
 }

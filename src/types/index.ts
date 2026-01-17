@@ -13,6 +13,7 @@ export interface Word {
   createdAt: number
   lastReviewed?: number
   source?: string
+  isFreeTranslation?: boolean // true = free API, false = AI translation
 }
 
 // Spaced repetition (SM-2) types
@@ -79,6 +80,8 @@ export interface UserSettings {
   lookupShortcutEnabled: boolean // enable keyboard shortcut mode (disables floating menu)
   lookupShortcut: string // e.g., 'Ctrl+Shift+D', 'Ctrl+D', 'Alt+T'
   targetLanguage: string // e.g., 'vi', 'zh', 'ja', 'ko', 'es', 'fr'
+  sourceLanguage?: string // source language for free translation (default: 'en')
+  useLLMTranslation: boolean // true = use LLM provider, false = use free API
   llmProvider: LLMProvider // selected LLM provider
   llmModel?: string // selected model for current provider
 }
@@ -105,10 +108,13 @@ export interface TranslationResult {
   translatedText: string
   sourceLanguage: string
   targetLanguage: string
+  sourceLangCode?: string  // For swap functionality
+  targetLangCode?: string  // For swap functionality
   isPhrase: boolean
   synonyms?: string[]
   antonyms?: string[]
   note?: string
+  isFreeTranslation?: boolean
 }
 
 // Message types for Chrome runtime messaging
@@ -116,6 +122,7 @@ export type MessageType =
   | 'LOOKUP_WORD'
   | 'LOOKUP_SELECTED'
   | 'TRANSLATE_TEXT'
+  | 'TRANSLATE_SWAP'
   | 'SAVE_WORD'
   | 'GET_WORDS'
   | 'DELETE_WORD'
@@ -126,6 +133,7 @@ export type MessageType =
   | 'SHOW_LOADING'
   | 'UPDATE_REMINDER'
   | 'TEST_NOTIFICATION'
+  | 'OPEN_OPTIONS_PAGE'
 
 export interface Message<T = unknown> {
   type: MessageType

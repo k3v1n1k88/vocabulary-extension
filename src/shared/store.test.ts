@@ -336,6 +336,8 @@ describe('useSettingsStore', () => {
         lookupShortcutEnabled: false,
         lookupShortcut: 'Ctrl+Shift+D',
         targetLanguage: 'vi',
+        sourceLanguage: 'en',
+        useLLMTranslation: false,
         llmProvider: 'openai'
       }
     })

@@ -16,10 +16,11 @@ chrome.storage.local.get('settings-storage', (result) => {
   if (result['settings-storage']) {
     try {
       const parsed = JSON.parse(result['settings-storage'])
-      const langCode = parsed.state?.settings?.targetLanguage || parsed.state?.targetLanguage || 'vi'
-      const lang = SUPPORTED_LANGUAGES.find(l => l.code === langCode)
-      if (lang) {
-        cachedTargetLanguage = lang.name
+      const settings = parsed.state?.settings || parsed.state || {}
+      const targetCode = settings.targetLanguage || 'vi'
+      const targetLang = SUPPORTED_LANGUAGES.find(l => l.code === targetCode)
+      if (targetLang) {
+        cachedTargetLanguage = targetLang.name
       }
     } catch (e) {
       console.warn('[VocabExt] Failed to parse settings:', e)
@@ -32,10 +33,11 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes['settings-storage']?.newValue) {
     try {
       const parsed = JSON.parse(changes['settings-storage'].newValue)
-      const langCode = parsed.state?.settings?.targetLanguage || parsed.state?.targetLanguage || 'vi'
-      const lang = SUPPORTED_LANGUAGES.find(l => l.code === langCode)
-      if (lang) {
-        cachedTargetLanguage = lang.name
+      const settings = parsed.state?.settings || parsed.state || {}
+      const targetCode = settings.targetLanguage || 'vi'
+      const targetLang = SUPPORTED_LANGUAGES.find(l => l.code === targetCode)
+      if (targetLang) {
+        cachedTargetLanguage = targetLang.name
       }
     } catch (e) {
       console.warn('[VocabExt] Failed to parse settings change:', e)
@@ -48,13 +50,27 @@ function saveTargetLanguage(langCode: string) {
   chrome.storage.local.get('settings-storage', (result) => {
     try {
       const stored = result['settings-storage'] ? JSON.parse(result['settings-storage']) : { state: { settings: {} }, version: 0 }
-      // Ensure nested structure exists
       if (!stored.state) stored.state = {}
       if (!stored.state.settings) stored.state.settings = {}
       stored.state.settings.targetLanguage = langCode
       chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
     } catch (e) {
       console.warn('[VocabExt] Failed to save target language:', e)
+    }
+  })
+}
+
+// Save source language to storage (for free translation)
+function saveSourceLanguage(langCode: string) {
+  chrome.storage.local.get('settings-storage', (result) => {
+    try {
+      const stored = result['settings-storage'] ? JSON.parse(result['settings-storage']) : { state: { settings: {} }, version: 0 }
+      if (!stored.state) stored.state = {}
+      if (!stored.state.settings) stored.state.settings = {}
+      stored.state.settings.sourceLanguage = langCode
+      chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
+    } catch (e) {
+      console.warn('[VocabExt] Failed to save source language:', e)
     }
   })
 }
@@ -577,11 +593,29 @@ function createTooltipHTML(word: Word): string {
        </div>`
     : ''
 
+  // Translation badge: AI or Free with upsell hint
+  const translationBadgeHTML = word.isFreeTranslation === false
+    ? `<span class="vocab-ai-badge" title="AI-powered translation">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+           <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+           <circle cx="7.5" cy="14.5" r="1.5"/>
+           <circle cx="16.5" cy="14.5" r="1.5"/>
+         </svg>
+         AI
+       </span>`
+    : word.isFreeTranslation === true
+    ? `<div class="vocab-free-hint">
+         <span class="vocab-free-badge">Free</span>
+         <a href="#" class="vocab-ai-hint" data-action="open-settings">Get better results with AI →</a>
+       </div>`
+    : ''
+
   return `
     <div class="vocab-tooltip-content">
       <div class="vocab-header">
         <div class="vocab-word-row">
           <span class="vocab-word">${word.word}</span>
+          ${translationBadgeHTML}
           <button class="vocab-audio-btn" data-word="${word.word}" title="Play pronunciation">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 5L6 9H2v6h4l5 4V5z"/>
@@ -668,10 +702,38 @@ function showTranslationTooltip(translation: TranslationResult) {
 function createTranslationTooltipHTML(translation: TranslationResult): string {
   const typeLabel = translation.isPhrase ? 'Phrase' : 'Word'
 
-  // Build language options HTML
-  const langOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
+  // Build language options HTML for target language
+  const targetLangOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
     `<div class="vocab-lang-option${lang.name === cachedTargetLanguage ? ' active' : ''}" data-lang-code="${lang.code}" data-lang-name="${lang.name}">${lang.nativeName}</div>`
   ).join('')
+
+  // Translation source badge: AI or Free
+  const translationBadgeHtml = translation.isFreeTranslation
+    ? `<div class="vocab-free-hint">
+         <span class="vocab-free-badge">Free</span>
+         <a href="#" class="vocab-ai-hint" data-action="open-settings">Get better results with AI →</a>
+       </div>`
+    : `<span class="vocab-ai-badge" title="AI-powered translation">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+           <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+           <circle cx="7.5" cy="14.5" r="1.5"/>
+           <circle cx="16.5" cy="14.5" r="1.5"/>
+         </svg>
+         AI
+       </span>`
+
+  // Source language dropdown for free translations (since no auto-detect)
+  const sourceLangCode = translation.sourceLangCode || 'en'
+  const targetLangCode = translation.targetLangCode || 'vi'
+  const sourceLangOptionsHtml = SUPPORTED_LANGUAGES.map(lang =>
+    `<div class="vocab-lang-option${lang.code === sourceLangCode ? ' active' : ''}" data-lang-code="${lang.code}" data-lang-name="${lang.name}">${lang.nativeName}</div>`
+  ).join('')
+
+  // Source language: dropdown for free, static text for LLM
+  const sourceLangHtml = translation.isFreeTranslation
+    ? `<span class="vocab-source-lang-trigger" data-original-text="${encodeURIComponent(translation.originalText)}" data-target-code="${targetLangCode}">${translation.sourceLanguage} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
+       <div class="vocab-source-lang-dropdown" style="display:none;">${sourceLangOptionsHtml}</div>`
+    : `<span>${translation.sourceLanguage}</span>`
 
   return `
     <div class="vocab-tooltip-content vocab-translation">
@@ -679,11 +741,12 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
         <div class="vocab-word-row">
           <span class="vocab-word">${translation.originalText}</span>
           <span class="vocab-type-badge">${typeLabel}</span>
+          ${translationBadgeHtml}
         </div>
         <span class="vocab-lang-info">
-          ${translation.sourceLanguage} →
+          ${sourceLangHtml} →
           <span class="vocab-target-lang-trigger">${translation.targetLanguage} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></span>
-          <div class="vocab-target-lang-dropdown" style="display:none;">${langOptionsHtml}</div>
+          <div class="vocab-target-lang-dropdown" style="display:none;">${targetLangOptionsHtml}</div>
         </span>
       </div>
 
@@ -713,6 +776,78 @@ function createTranslationTooltipHTML(translation: TranslationResult): string {
 
 function setupTranslationEventListeners(translation: TranslationResult) {
   if (!tooltip) return
+
+  // AI hint link - open settings to API key section
+  if (translation.isFreeTranslation) {
+    const aiHint = tooltip.querySelector('.vocab-ai-hint')
+    aiHint?.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', payload: { hash: 'settings-ai-translation' } })
+    })
+
+    // Source language dropdown - select source language and re-translate
+    const sourceLangTrigger = tooltip.querySelector('.vocab-source-lang-trigger')
+    const sourceLangDropdown = tooltip.querySelector('.vocab-source-lang-dropdown')
+
+    sourceLangTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const isVisible = sourceLangDropdown?.getAttribute('style')?.includes('block')
+      // Hide target dropdown if open
+      const targetDropdown = tooltip?.querySelector('.vocab-target-lang-dropdown')
+      if (targetDropdown) targetDropdown.setAttribute('style', 'display:none;')
+      // Toggle source dropdown
+      sourceLangDropdown?.setAttribute('style', isVisible ? 'display:none;' : 'display:block;')
+    })
+
+    // Source language option selection
+    sourceLangDropdown?.querySelectorAll('.vocab-lang-option').forEach(option => {
+      option.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const el = e.currentTarget as HTMLElement
+        const newSourceCode = el.dataset.langCode || 'en'
+        const newSourceName = el.dataset.langName || 'English'
+
+        // Save source language preference
+        saveSourceLanguage(newSourceCode)
+
+        // Get data from trigger
+        const trigger = tooltip?.querySelector('.vocab-source-lang-trigger') as HTMLElement
+        const originalText = decodeURIComponent(trigger?.dataset.originalText || '')
+        const targetCode = trigger?.dataset.targetCode || 'vi'
+
+        // Hide dropdown and update trigger text
+        sourceLangDropdown?.setAttribute('style', 'display:none;')
+        if (trigger) {
+          trigger.innerHTML = `${newSourceName} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>`
+        }
+
+        // Show loading state
+        const translatedDiv = tooltip?.querySelector('.vocab-translated-text')
+        if (translatedDiv) {
+          translatedDiv.innerHTML = '<div class="vocab-loading"><div class="vocab-loading-spinner"></div>Translating...</div>'
+        }
+
+        try {
+          // Re-translate with new source language
+          const result = await chrome.runtime.sendMessage({
+            type: 'TRANSLATE_SWAP',
+            payload: { text: originalText, sourceLangCode: newSourceCode, targetLangCode: targetCode }
+          }) as TranslationResult
+
+          if (result && tooltip) {
+            tooltip.innerHTML = createTranslationTooltipHTML(result)
+            setupTranslationEventListeners(result)
+          }
+        } catch (error) {
+          console.error('[VocabExt] Source language change failed:', error)
+          if (translatedDiv) {
+            translatedDiv.innerHTML = '<span style="color: #dc2626;">Translation failed. Try again.</span>'
+          }
+        }
+      })
+    })
+  }
 
   // Copy button
   const copyBtn = tooltip.querySelector('.vocab-copy-btn')
@@ -754,39 +889,72 @@ function setupTranslationEventListeners(translation: TranslationResult) {
     })
   })
 
-  // Language trigger - toggle dropdown
-  const langTrigger = tooltip.querySelector('.vocab-target-lang-trigger')
-  const langDropdown = tooltip.querySelector('.vocab-target-lang-dropdown') as HTMLElement
-  langTrigger?.addEventListener('click', (e) => {
+  // Target language trigger - toggle dropdown
+  const targetLangTrigger = tooltip.querySelector('.vocab-target-lang-trigger')
+  const targetLangDropdown = tooltip.querySelector('.vocab-target-lang-dropdown') as HTMLElement
+  targetLangTrigger?.addEventListener('click', (e) => {
     e.stopPropagation()
-    if (langDropdown) {
-      langDropdown.style.display = langDropdown.style.display === 'none' ? 'block' : 'none'
+    // Hide source dropdown if open
+    const sourceDropdown = tooltip?.querySelector('.vocab-source-lang-dropdown') as HTMLElement
+    if (sourceDropdown) sourceDropdown.style.display = 'none'
+    // Toggle target dropdown
+    if (targetLangDropdown) {
+      targetLangDropdown.style.display = targetLangDropdown.style.display === 'none' ? 'block' : 'none'
     }
   })
 
-  // Language options - select and re-translate
-  tooltip.querySelectorAll('.vocab-lang-option').forEach(option => {
-    option.addEventListener('click', (e) => {
+  // Target language options - select and re-translate
+  targetLangDropdown?.querySelectorAll('.vocab-lang-option').forEach(option => {
+    option.addEventListener('click', async (e) => {
       e.stopPropagation()
-      const langCode = (option as HTMLElement).dataset.langCode
-      const langName = (option as HTMLElement).dataset.langName
-      if (langCode && langName) {
+      const newTargetCode = (option as HTMLElement).dataset.langCode
+      const newTargetName = (option as HTMLElement).dataset.langName
+      if (newTargetCode && newTargetName) {
         // Update cached language
-        cachedTargetLanguage = langName
+        cachedTargetLanguage = newTargetName
         // Save to storage
-        saveTargetLanguage(langCode)
+        saveTargetLanguage(newTargetCode)
         // Hide dropdown
-        if (langDropdown) langDropdown.style.display = 'none'
-        // Show loading and re-translate with explicit target language
-        showLoadingTooltip(translation.originalText, translation.isPhrase)
-        chrome.runtime.sendMessage({
-          type: 'TRANSLATE_TEXT',
-          payload: { text: translation.originalText, targetLanguage: langName }
-        }, (response) => {
-          if (response?.success && response.data) {
-            updateTooltipWithTranslation(response.data)
+        if (targetLangDropdown) targetLangDropdown.style.display = 'none'
+
+        // For free translations, preserve source language
+        if (translation.isFreeTranslation) {
+          const currentSourceCode = translation.sourceLangCode || 'en'
+
+          // Show loading
+          const translatedDiv = tooltip?.querySelector('.vocab-translated-text')
+          if (translatedDiv) {
+            translatedDiv.innerHTML = '<div class="vocab-loading"><div class="vocab-loading-spinner"></div>Translating...</div>'
           }
-        })
+
+          try {
+            const result = await chrome.runtime.sendMessage({
+              type: 'TRANSLATE_SWAP',
+              payload: { text: translation.originalText, sourceLangCode: currentSourceCode, targetLangCode: newTargetCode }
+            }) as TranslationResult
+
+            if (result && tooltip) {
+              tooltip.innerHTML = createTranslationTooltipHTML(result)
+              setupTranslationEventListeners(result)
+            }
+          } catch (error) {
+            console.error('[VocabExt] Target language change failed:', error)
+            if (translatedDiv) {
+              translatedDiv.innerHTML = '<span style="color: #dc2626;">Translation failed. Try again.</span>'
+            }
+          }
+        } else {
+          // LLM translation - use normal flow
+          showLoadingTooltip(translation.originalText, translation.isPhrase)
+          chrome.runtime.sendMessage({
+            type: 'TRANSLATE_TEXT',
+            payload: { text: translation.originalText, targetLanguage: newTargetName }
+          }, (response) => {
+            if (response?.success && response.data) {
+              updateTooltipWithTranslation(response.data)
+            }
+          })
+        }
       }
     })
   })
@@ -813,11 +981,23 @@ function showErrorTooltip(message: string) {
     top = rect.bottom + window.scrollY + 10
   }
 
+  // Check if this is an API key error - show settings button
+  const isApiKeyError = message.toLowerCase().includes('api key')
+
   tooltip = document.createElement('div')
   tooltip.id = 'vocabulary-tooltip'
   tooltip.innerHTML = `
     <div class="vocab-tooltip-content vocab-error">
       <p>${message}</p>
+      ${isApiKeyError ? `
+        <button class="vocab-settings-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Open Settings
+        </button>
+      ` : ''}
     </div>
   `
 
@@ -831,8 +1011,19 @@ function showErrorTooltip(message: string) {
   document.body.appendChild(tooltip)
   document.addEventListener('click', handleOutsideClick)
 
-  // Auto-remove after 3 seconds
-  setTimeout(removeTooltip, 3000)
+  // Add settings button listener if API key error
+  if (isApiKeyError) {
+    const settingsBtn = tooltip.querySelector('.vocab-settings-btn')
+    settingsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      // Content scripts can't call openOptionsPage directly, send message to background
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', payload: { hash: 'settings-ai-translation' } })
+      removeTooltip()
+    })
+  } else {
+    // Auto-remove after 3 seconds only for non-API key errors
+    setTimeout(removeTooltip, 3000)
+  }
 }
 
 function setupTooltipEventListeners(word: Word) {
@@ -847,6 +1038,16 @@ function setupTooltipEventListeners(word: Word) {
       payload: { text: word.word, audioUrl: word.audioUrl }
     })
   })
+
+  // AI hint link - open settings to API key section
+  if (word.isFreeTranslation) {
+    const aiHint = tooltip.querySelector('.vocab-ai-hint')
+    aiHint?.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', payload: { hash: 'settings-ai-translation' } })
+    })
+  }
 
   // Save button
   const saveBtn = tooltip.querySelector('.vocab-save-btn')

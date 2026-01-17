@@ -1,6 +1,7 @@
 import type { TranslationResult, LLMProvider } from '../types'
 import { SUPPORTED_LANGUAGES } from '../types'
 import { getProviderConfig } from './llm-provider-config'
+import { translateWithFreeApi } from './free-translation-api'
 
 /**
  * Get API key for specified provider from chrome.storage
@@ -32,7 +33,7 @@ async function getSelectedProvider(): Promise<LLMProvider> {
 }
 
 /**
- * Get target language from settings
+ * Get target language name from settings
  */
 async function getTargetLanguage(): Promise<string> {
   return new Promise((resolve) => {
@@ -44,6 +45,55 @@ async function getTargetLanguage(): Promise<string> {
         resolve(lang ? lang.name : 'Vietnamese')
       } catch {
         resolve('Vietnamese')
+      }
+    })
+  })
+}
+
+/**
+ * Get target language code from settings (e.g., 'vi', 'en')
+ */
+async function getTargetLanguageCode(): Promise<string> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['settings-storage'], (result) => {
+      try {
+        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
+        resolve(parsed?.state?.settings?.targetLanguage || 'vi')
+      } catch {
+        resolve('vi')
+      }
+    })
+  })
+}
+
+/**
+ * Get source language code from settings (for free translation)
+ */
+async function getSourceLanguageCode(): Promise<string> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['settings-storage'], (result) => {
+      try {
+        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
+        resolve(parsed?.state?.settings?.sourceLanguage || 'en')
+      } catch {
+        resolve('en')
+      }
+    })
+  })
+}
+
+/**
+ * Check if LLM translation is enabled in settings
+ */
+async function isLLMTranslationEnabled(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['settings-storage'], (result) => {
+      try {
+        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
+        // Default to false - use free API by default
+        resolve(parsed?.state?.settings?.useLLMTranslation ?? false)
+      } catch {
+        resolve(false)
       }
     })
   })
@@ -246,7 +296,8 @@ function parseTranslationResult(
     isPhrase: isTextPhrase,
     synonyms,
     antonyms,
-    note
+    note,
+    isFreeTranslation: false // AI translation
   }
 }
 
@@ -262,12 +313,25 @@ export async function translateText(
     throw new Error('No internet connection. Please check your network.')
   }
 
+  // Check if LLM translation is enabled
+  const useLLM = await isLLMTranslationEnabled()
+
+  // Use free API if LLM is disabled or no API key configured
+  if (!useLLM) {
+    const [targetLangCode, sourceLangCode] = await Promise.all([
+      getTargetLanguageCode(),
+      getSourceLanguageCode()
+    ])
+    return translateWithFreeApi(text, targetLangCode, sourceLangCode)
+  }
+
   const provider = await getSelectedProvider()
   const config = getProviderConfig(provider)
   const apiKey = await getApiKey(provider)
 
+  // Show error if AI enabled but no API key - user can disable AI in settings
   if (!apiKey) {
-    throw new Error(`${config.name} API key not configured. Please set it in extension settings.`)
+    throw new Error(`${config.name} API key not configured. Add your key in Settings or disable AI translation.`)
   }
 
   const isTextPhrase = isPhrase(text)

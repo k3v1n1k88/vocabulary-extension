@@ -51,9 +51,37 @@ const tabs: { id: OptionsTab; label: string; icon: React.ReactNode }[] = [
 ]
 
 export default function Options() {
-  const [activeTab, setActiveTab] = useState<OptionsTab>('dashboard')
+  const [activeTab, setActiveTab] = useState<OptionsTab>(() => {
+    // Check URL hash for direct tab navigation (e.g., #settings or #settings-apikey)
+    const hash = window.location.hash.slice(1)
+    const tabPart = hash.split('-')[0] as OptionsTab
+    if (['dashboard', 'study', 'vocabulary', 'settings'].includes(tabPart)) {
+      return tabPart
+    }
+    return 'dashboard'
+  })
   const { getDueCards } = useVocabularyStore()
   const dueCount = getDueCards().length
+
+  // Scroll to element if hash contains element id (e.g., #settings-apikey)
+  useEffect(() => {
+    const hash = window.location.hash.slice(1)
+    if (hash && hash.includes('-')) {
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const element = document.getElementById(hash)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // Highlight briefly
+          element.style.transition = 'background-color 0.3s'
+          element.style.backgroundColor = '#fef3c7'
+          setTimeout(() => {
+            element.style.backgroundColor = ''
+          }, 2000)
+        }
+      }, 100)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -460,7 +488,36 @@ function SettingsContent() {
             </select>
           </div>
 
-          {/* LLM Provider Dropdown */}
+          {/* AI Translation Toggle */}
+          <div id="settings-ai-translation" className="border-t border-gray-100 pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Use AI Translation
+                </label>
+                <p className="text-sm text-gray-500 mt-1">
+                  {settings.useLLMTranslation !== false
+                    ? 'AI-powered translations with better quality'
+                    : 'Using free translation API (basic quality)'}
+                </p>
+              </div>
+              <button
+                onClick={() => updateSettings({ useLLMTranslation: !(settings.useLLMTranslation !== false) })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settings.useLLMTranslation !== false ? 'bg-primary-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.useLLMTranslation !== false ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* LLM Provider Dropdown - only show when AI enabled */}
+          {settings.useLLMTranslation !== false && (
           <div className="border-t border-gray-100 pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               LLM Provider
@@ -483,8 +540,10 @@ function SettingsContent() {
               ))}
             </select>
           </div>
+          )}
 
-          {/* Model Dropdown */}
+          {/* Model Dropdown - only show when AI enabled */}
+          {settings.useLLMTranslation !== false && (
           <div className="border-t border-gray-100 pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Model
@@ -504,14 +563,28 @@ function SettingsContent() {
               ))}
             </select>
           </div>
+          )}
 
-          {/* Dynamic API Key Input */}
-          <div className="border-t border-gray-100 pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Dynamic API Key Input - only show when AI enabled */}
+          {settings.useLLMTranslation !== false && (
+          <div id="settings-apikey" className="border-t border-gray-100 pt-4">
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
               {currentProvider.name} API Key
             </label>
+            {/* Privacy notice - API keys stored locally */}
+            <div className="flex items-start gap-2 p-3 mb-3 bg-green-50 border border-green-200 rounded-lg">
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div className="text-sm">
+                <p className="text-green-800 font-medium">🔒 Your API key is private</p>
+                <p className="text-green-700 mt-1">
+                  Keys are stored locally in your browser only. We never send or store your API key on any server.
+                </p>
+              </div>
+            </div>
             <p className="text-sm text-gray-500 mb-3">
-              Required for translating phrases. Get your key from{' '}
+              Get your key from{' '}
               <a
                 href={currentProvider.registerUrl}
                 target="_blank"
@@ -596,12 +669,15 @@ function SettingsContent() {
               </div>
             )}
           </div>
+          )}
 
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
             <h4 className="font-medium text-blue-800 text-sm mb-1">How translation works</h4>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>Single word</strong> → Dictionary lookup (Free)</li>
-              <li>• <strong>Multiple words</strong> → {currentProvider.name} translation (Requires API key)</li>
+              <li>• <strong>Multiple words</strong> → {settings.useLLMTranslation !== false
+                ? `${currentProvider.name} translation (Requires API key)`
+                : 'Free translation API (no key required)'}</li>
             </ul>
           </div>
         </div>

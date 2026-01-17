@@ -1,5 +1,6 @@
 import { lookupWordWithTranslation } from '@/shared/dictionary-api'
 import { translateToTargetLanguage, translateText, isPhrase } from '@/shared/translation-service'
+import { translateWithFreeApi } from '@/shared/free-translation-api'
 import { initNotifications, scheduleStudyReminder, showDailyReminder } from '@/shared/notifications'
 import type { Message, LookupWordPayload, Word, FlashcardData } from '@/types'
 
@@ -112,6 +113,18 @@ async function handleMessage(
         break
       }
 
+      case 'TRANSLATE_SWAP': {
+        // Swap translation for free API - user clicked swap button
+        const { text, sourceLangCode, targetLangCode } = message.payload as {
+          text: string
+          sourceLangCode: string
+          targetLangCode: string
+        }
+        const translation = await translateWithFreeApi(text, targetLangCode, sourceLangCode)
+        sendResponse(translation)
+        break
+      }
+
       case 'SAVE_WORD': {
         const { word } = message.payload as { word: Word }
         // Save to chrome storage
@@ -186,6 +199,18 @@ async function handleMessage(
           await scheduleStudyReminder(reminderInterval)
         } else {
           await chrome.alarms.clear('study-reminder')
+        }
+        sendResponse({ success: true })
+        break
+      }
+
+      case 'OPEN_OPTIONS_PAGE': {
+        // Open options page with optional hash for direct tab navigation
+        const { hash } = (message.payload as { hash?: string }) || {}
+        if (hash) {
+          chrome.tabs.create({ url: chrome.runtime.getURL(`src/options/index.html#${hash}`) })
+        } else {
+          chrome.runtime.openOptionsPage()
         }
         sendResponse({ success: true })
         break
