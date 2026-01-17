@@ -78,12 +78,20 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DATE=$(date +%Y-%m-%d)
 
-          # Create new changelog entry
-          NEW_ENTRY="## [$VERSION] - $DATE\n\n$(cat /tmp/changelog.txt)\n\n"
-
-          # Insert after header in CHANGELOG.md
           if [ -f docs/CHANGELOG.md ]; then
-            sed -i "s/# Changelog/# Changelog\n\n${NEW_ENTRY}/" docs/CHANGELOG.md
+            # Create temp file with new entry
+            {
+              echo "# Changelog"
+              echo ""
+              echo "## [$VERSION] - $DATE"
+              echo ""
+              cat /tmp/changelog.txt
+              echo ""
+              # Append rest of changelog (skip first line "# Changelog")
+              tail -n +2 docs/CHANGELOG.md
+            } > /tmp/CHANGELOG.new.md
+
+            mv /tmp/CHANGELOG.new.md docs/CHANGELOG.md
           fi
 
       # Create zip for Chrome Web Store
