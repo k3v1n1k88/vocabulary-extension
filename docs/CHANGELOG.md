@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-01-17
+
+What's New:
+- Add chrome web store changelog and human-readable format
+
+
 ## [1.0.1] - 2026-01-17
 
 - fix(ci): replace broken sed with temp file approach for changelog
