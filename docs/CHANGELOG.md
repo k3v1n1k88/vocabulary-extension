@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.1] - 2026-01-17
+
+- fix(ci): replace broken sed with temp file approach for changelog
+- feat: add google translate tts and xss security hardening
+- feat: add free translation api fallback and ai translation toggle
+- docs: simplify cws credentials guide with working oauth flow
+- docs: replace deprecated oob flow with service account auth
+- ci: remove coverage artifact upload
+- test: add automation testing infrastructure
+- feat: add code obfuscation for release builds
+- docs: update changelog for v1.0.1
+- chore: bump version to 1.0.1
+- chore: update feedback links for published extension
+- docs: add implementation plans and review reports
+- feat: add multi-LLM provider support and fix edge cases
+- fix: fix bugs
+- fix: add error handling for 7 critical edge cases
+- feat(vocabulary-extension): implement React Chrome extension with spaced repetition
+- chore: initial commit
+
+
 All notable changes to Vocabulary Builder Chrome Extension.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
