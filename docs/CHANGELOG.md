@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.3] - 2026-01-18
+
+What's New:
+- Add persistent text highlighting with color picker
+- Validate api key before saving in settings
+- Improve ux with donate redesign, ai hints, and settings sync
+- Add pdf viewer support with side panel
+
+
 ## [1.0.2] - 2026-01-17
 
 What's New:
