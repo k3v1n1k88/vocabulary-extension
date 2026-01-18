@@ -548,10 +548,15 @@ function showLoadingTooltip(text: string, isPhrase: boolean) {
     top = position.top
   } else {
     const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0) return
-    const rect = selection.getRangeAt(0).getBoundingClientRect()
-    left = rect.left + window.scrollX
-    top = rect.bottom + window.scrollY + 10
+    if (selection && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      left = rect.left + window.scrollX
+      top = rect.bottom + window.scrollY + 10
+    } else {
+      // Fallback: show in center of viewport if no position available
+      left = window.innerWidth / 2 - 200
+      top = window.innerHeight / 3 + window.scrollY
+    }
   }
 
   // Save position for subsequent updates
@@ -646,11 +651,17 @@ function showTooltip(word: Word) {
   } else {
     const selection = window.getSelection()
     console.log('[VocabExt] No saved position, trying selection:', selection?.toString())
-    if (!selection || selection.rangeCount === 0) return
-    const rect = selection.getRangeAt(0).getBoundingClientRect()
-    left = rect.left + window.scrollX
-    top = rect.bottom + window.scrollY + 10
-    console.log('[VocabExt] Calculated from selection:', left, top)
+    if (selection && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      left = rect.left + window.scrollX
+      top = rect.bottom + window.scrollY + 10
+      console.log('[VocabExt] Calculated from selection:', left, top)
+    } else {
+      // Fallback: show in center of viewport if no position available
+      left = window.innerWidth / 2 - 200
+      top = window.innerHeight / 3 + window.scrollY
+      console.log('[VocabExt] Using fallback center position:', left, top)
+    }
   }
 
   tooltip = document.createElement('div')
@@ -798,10 +809,15 @@ function showTranslationTooltip(translation: TranslationResult) {
     top = position.top
   } else {
     const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0) return
-    const rect = selection.getRangeAt(0).getBoundingClientRect()
-    left = rect.left + window.scrollX
-    top = rect.bottom + window.scrollY + 10
+    if (selection && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      left = rect.left + window.scrollX
+      top = rect.bottom + window.scrollY + 10
+    } else {
+      // Fallback: show in center of viewport if no position available
+      left = window.innerWidth / 2 - 200
+      top = window.innerHeight / 3 + window.scrollY
+    }
   }
 
   tooltip = document.createElement('div')
@@ -1123,10 +1139,15 @@ function showErrorTooltip(message: string) {
     top = position.top
   } else {
     const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0) return
-    const rect = selection.getRangeAt(0).getBoundingClientRect()
-    left = rect.left + window.scrollX
-    top = rect.bottom + window.scrollY + 10
+    if (selection && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      left = rect.left + window.scrollX
+      top = rect.bottom + window.scrollY + 10
+    } else {
+      // Fallback: show in center of viewport if no position available
+      left = window.innerWidth / 2 - 200
+      top = window.innerHeight / 3 + window.scrollY
+    }
   }
 
   // Check if this is an API key error - show settings button

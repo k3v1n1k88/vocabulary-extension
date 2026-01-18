@@ -74,8 +74,8 @@ export default function SidePanel() {
     }
     loadData()
 
-    // Listen for new results
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+    // Listen for new results (session storage)
+    const handleSessionChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.pdfLookupResult?.newValue) {
         const newResult = changes.pdfLookupResult.newValue as PdfLookupResult
         setResult(newResult)
@@ -86,9 +86,28 @@ export default function SidePanel() {
       }
     }
 
-    chrome.storage.session?.onChanged.addListener(handleStorageChange)
+    // Listen for settings changes (local storage)
+    const handleLocalChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes['settings-storage']?.newValue) {
+        try {
+          const parsed = JSON.parse(changes['settings-storage'].newValue)
+          const userSettings = parsed?.state?.settings as UserSettings
+          if (userSettings) {
+            setSettings(userSettings)
+            setSourceLang(userSettings.sourceLanguage || 'en')
+            setTargetLang(userSettings.targetLanguage || 'vi')
+          }
+        } catch {
+          console.warn('[VocabExt] Failed to parse settings change')
+        }
+      }
+    }
+
+    chrome.storage.session?.onChanged.addListener(handleSessionChange)
+    chrome.storage.local?.onChanged.addListener(handleLocalChange)
     return () => {
-      chrome.storage.session?.onChanged.removeListener(handleStorageChange)
+      chrome.storage.session?.onChanged.removeListener(handleSessionChange)
+      chrome.storage.local?.onChanged.removeListener(handleLocalChange)
     }
   }, [])
 
@@ -281,6 +300,30 @@ export default function SidePanel() {
                   Enable AI Mode
                 </button>
               </>
+            ) : result.error?.includes('API key not configured') ? (
+              <>
+                <svg className="w-10 h-10 mx-auto mb-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <p className="text-sm text-purple-600 font-medium">API Key Required</p>
+                <p className="text-xs text-gray-500 mt-1">Configure your API key in Settings to use AI translation.</p>
+                <button
+                  onClick={() => {
+                    chrome.runtime.sendMessage({
+                      type: 'OPEN_OPTIONS_PAGE',
+                      payload: { hash: 'settings-ai-translation' }
+                    })
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
+                  style={{ background: 'linear-gradient(135deg, #818cf8, #6366f1)' }}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Configure API Key
+                </button>
+              </>
             ) : (
               <>
                 <svg className="w-10 h-10 mx-auto mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,23 +392,32 @@ export default function SidePanel() {
       </div>
 
       {/* Donate bar */}
-      <div className="px-3 py-1.5 bg-gradient-to-r from-primary-50 to-success-50 border-t border-primary-100 flex justify-center gap-2">
-        <a
-          href="https://buymeacoffee.com/k3v1n1088"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] px-2 py-0.5 bg-[#FFDD00] text-gray-900 rounded font-medium hover:bg-[#ffed4a] transition-colors"
-        >
-          Buy me a coffee
-        </a>
-        <a
-          href="https://paypal.me/k3v1n1k88"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] px-2 py-0.5 bg-[#0070ba] text-white rounded font-medium hover:bg-[#005ea6] transition-colors"
-        >
-          Donate PayPal
-        </a>
+      <div className="px-4 py-2.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-t border-amber-100">
+        <p className="text-[10px] text-amber-700/70 text-center mb-1.5">Enjoying the extension? Support development ❤️</p>
+        <div className="flex justify-center gap-2">
+          <a
+            href="https://buymeacoffee.com/k3v1n1088"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 bg-[#FFDD00] text-amber-900 rounded-full font-medium hover:bg-[#ffed4a] hover:shadow-sm transition-all"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2 21v-2h2V5c0-.55.196-1.02.588-1.413A1.93 1.93 0 0 1 6 3h12c.55 0 1.02.196 1.412.587C19.804 3.98 20 4.45 20 5v2h2v2h-2v2h2v2h-2v6h2v2H2Zm4-2h10V5H6v14Zm3-6q.425 0 .713-.288A.97.97 0 0 0 10 12V8a.97.97 0 0 0-.287-.713A.97.97 0 0 0 9 7a.97.97 0 0 0-.713.287A.97.97 0 0 0 8 8v4c0 .283.096.52.287.712.192.192.43.288.713.288Z"/>
+            </svg>
+            Coffee
+          </a>
+          <a
+            href="https://paypal.me/k3v1n1k88"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 bg-[#0070ba] text-white rounded-full font-medium hover:bg-[#005ea6] hover:shadow-sm transition-all"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.217a.77.77 0 0 1 .757-.645h6.234c2.093 0 3.542.464 4.306 1.38.735.88.96 2.066.67 3.525-.006.03-.014.06-.02.09l-.003.013v.004c-.36 1.883-1.264 3.254-2.687 4.076-1.39.804-3.166 1.212-5.28 1.212H7.16a.768.768 0 0 0-.757.644l-1.326 7.82Zm5.357-17.197h-1.84l-1.95 11.497h1.168c2.832 0 4.896-.77 6.133-2.288 1.238-1.518 1.52-3.506.839-5.91-.49-1.716-2.115-3.3-4.35-3.3Z"/>
+            </svg>
+            PayPal
+          </a>
+        </div>
       </div>
 
       {/* Footer */}
@@ -534,6 +586,23 @@ function ResultCard({
           </div>
         )}
 
+        {/* AI upsell hint for free users */}
+        {word.isFreeTranslation === true && (
+          <div className="text-center py-2 border-t border-dashed border-gray-200 mt-2">
+            <button
+              onClick={() => {
+                chrome.runtime.sendMessage({
+                  type: 'OPEN_OPTIONS_PAGE',
+                  payload: { hash: 'settings-ai-translation' }
+                })
+              }}
+              className="text-xs text-indigo-500 opacity-80 hover:opacity-100 hover:underline transition-opacity"
+            >
+              ✨ Get better results with AI →
+            </button>
+          </div>
+        )}
+
         {/* Save button */}
         <button
           onClick={() => onSave(word)}
@@ -635,6 +704,23 @@ function ResultCard({
         <span className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">Translation</span>
         <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">{translation.translatedText}</p>
       </div>
+
+      {/* AI upsell hint for free users */}
+      {!useLLMTranslation && (
+        <div className="text-center py-2 border-t border-dashed border-gray-200 mb-3">
+          <button
+            onClick={() => {
+              chrome.runtime.sendMessage({
+                type: 'OPEN_OPTIONS_PAGE',
+                payload: { hash: 'settings-ai-translation' }
+              })
+            }}
+            className="text-xs text-indigo-500 opacity-80 hover:opacity-100 hover:underline transition-opacity"
+          >
+            ✨ Get better results with AI →
+          </button>
+        </div>
+      )}
 
       {/* Copy button */}
       <button
