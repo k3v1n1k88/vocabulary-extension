@@ -21,11 +21,23 @@ import {
   updateTooltipWithTranslation,
   showErrorTooltip
 } from './modules/tooltip-manager'
+import {
+  restoreHighlights,
+  initHighlightClickHandlers
+} from './modules/highlight-renderer'
 
 // Initialize all modules
 initSettings()
 initKeyboardShortcuts(showFloatingMenuForSelection)
 initFloatingMenu(getTooltip)
+
+// Initialize highlight features (wrapped in try-catch to prevent breaking floating menu)
+try {
+  initHighlightClickHandlers()
+  restoreHighlights().catch(err => console.warn('[VocabExt] Failed to restore highlights:', err))
+} catch (err) {
+  console.warn('[VocabExt] Failed to initialize highlight handlers:', err)
+}
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {

@@ -8,8 +8,10 @@ import {
   getTargetLanguage,
   getSourceLanguage,
   getSourceLangCode,
-  isLLMTranslationEnabled
+  isLLMTranslationEnabled,
+  getHighlightColor
 } from './settings-manager'
+import { highlightRange } from './highlight-renderer'
 import { playGoogleTTSAudio, showTTSError } from './tts-player'
 import { isShortcutModeEnabled } from './keyboard-shortcuts'
 import {
@@ -28,6 +30,9 @@ let floatingButton: HTMLDivElement | null = null
 
 // Saved position for tooltip positioning
 let savedTooltipPosition: { left: number; top: number } | null = null
+
+// Saved selection range for highlight action (selection gets cleared on click)
+let savedSelectionRange: Range | null = null
 
 // Callbacks for external references (to avoid circular dependencies)
 let onFloatingButtonRemove: (() => void) | null = null
@@ -92,6 +97,9 @@ export function showFloatingButton(selection: Selection): void {
   // Save position for tooltip
   savedTooltipPosition = calculateTooltipPosition(rect)
 
+  // Save range for highlight action (selection gets cleared when clicking menu)
+  savedSelectionRange = range.cloneRange()
+
   const selectedText = selection.toString().trim()
   const isPhrase = selectedText.split(/\s+/).length > 1
 
@@ -100,6 +108,7 @@ export function showFloatingButton(selection: Selection): void {
   const cachedSourceLanguage = getSourceLanguage()
   const cachedSourceLangCode = getSourceLangCode()
   const cachedUseLLMTranslation = isLLMTranslationEnabled()
+  const cachedHighlightColor = getHighlightColor()
 
   // Create menu element
   floatingButton = document.createElement('div')
@@ -109,7 +118,8 @@ export function showFloatingButton(selection: Selection): void {
     isPhrase,
     useLLMTranslation: cachedUseLLMTranslation,
     sourceLanguage: cachedSourceLanguage,
-    targetLanguage: cachedTargetLanguage
+    targetLanguage: cachedTargetLanguage,
+    highlightColor: cachedHighlightColor
   })
 
   // Position near selection
@@ -127,6 +137,87 @@ export function showFloatingButton(selection: Selection): void {
   document.body.appendChild(floatingButton)
 }
 
+// Session-level highlight color (updated when user picks from dropdown)
+let sessionHighlightColor: string | null = null
+
+/**
+ * Get current highlight color (session override or settings).
+ */
+function getCurrentHighlightColor(): string {
+  return sessionHighlightColor || getHighlightColor()
+}
+
+/**
+ * Handle color trigger click - toggle dropdown.
+ */
+function handleColorTrigger(clickedEl: HTMLElement, menu: HTMLDivElement): boolean {
+  const trigger = clickedEl.closest('.vocab-color-trigger')
+  if (!trigger) return false
+
+  const dropdown = menu.querySelector('.vocab-color-dropdown') as HTMLElement
+  if (dropdown) {
+    const isVisible = dropdown.style.display !== 'none'
+    dropdown.style.display = isVisible ? 'none' : 'block'
+  }
+  return true
+}
+
+/**
+ * Save highlight color to storage.
+ */
+function saveHighlightColorToStorage(color: string): void {
+  try {
+    chrome.storage.local.get('settings-storage', (result) => {
+      const stored = result['settings-storage']
+        ? JSON.parse(result['settings-storage'])
+        : { state: { settings: {} }, version: 0 }
+
+      if (!stored.state) stored.state = {}
+      if (!stored.state.settings) stored.state.settings = {}
+
+      stored.state.settings.highlightColor = color
+      chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
+    })
+  } catch (e) {
+    console.warn('[VocabExt] Failed to save highlight color:', e)
+  }
+}
+
+/**
+ * Handle color option click - update color and preview.
+ */
+function handleColorOptionClick(clickedEl: HTMLElement, menu: HTMLDivElement): boolean {
+  const option = clickedEl.closest('.vocab-color-option') as HTMLElement
+  if (!option) return false
+
+  const newColor = option.getAttribute('data-color')
+  if (!newColor) return false
+
+  // Update session color
+  sessionHighlightColor = newColor
+
+  // Save to storage for persistence
+  saveHighlightColorToStorage(newColor)
+
+  // Update preview swatch
+  const preview = menu.querySelector('.vocab-color-preview') as HTMLElement
+  if (preview) {
+    preview.style.backgroundColor = newColor
+  }
+
+  // Update active state in dropdown
+  menu.querySelectorAll('.vocab-color-option').forEach(opt => opt.classList.remove('active'))
+  option.classList.add('active')
+
+  // Hide dropdown
+  const dropdown = menu.querySelector('.vocab-color-dropdown') as HTMLElement
+  if (dropdown) {
+    dropdown.style.display = 'none'
+  }
+
+  return true
+}
+
 /**
  * Setup click event handlers for menu actions.
  */
@@ -135,27 +226,46 @@ function setupMenuEventHandlers(
   selectedText: string,
   sourceLangCode: string
 ): void {
-  let activeDropdown: 'source' | 'target' | null = null
+  let activeDropdown: 'source' | 'target' | 'color' | null = null
 
   menu.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
     const clickedEl = e.target as HTMLElement
 
+    // Handle color trigger
+    if (handleColorTrigger(clickedEl, menu)) {
+      // Close other dropdowns
+      menu.querySelector('.vocab-source-lang-dropdown')?.setAttribute('style', 'display:none')
+      menu.querySelector('.vocab-target-lang-dropdown')?.setAttribute('style', 'display:none')
+      activeDropdown = activeDropdown === 'color' ? null : 'color'
+      return
+    }
+
+    // Handle color option selection
+    if (handleColorOptionClick(clickedEl, menu)) {
+      activeDropdown = null
+      return
+    }
+
     // Handle source language trigger
     if (handleSourceLangTrigger(clickedEl, menu)) {
+      // Close color dropdown
+      menu.querySelector('.vocab-color-dropdown')?.setAttribute('style', 'display:none')
       activeDropdown = activeDropdown === 'source' ? null : 'source'
       return
     }
 
     // Handle target language trigger
     if (handleTargetLangTrigger(clickedEl, menu)) {
+      // Close color dropdown
+      menu.querySelector('.vocab-color-dropdown')?.setAttribute('style', 'display:none')
       activeDropdown = activeDropdown === 'target' ? null : 'target'
       return
     }
 
     // Handle language option selection
-    if (handleLangOptionClick(clickedEl, menu, activeDropdown)) {
+    if (handleLangOptionClick(clickedEl, menu, activeDropdown === 'source' ? 'source' : activeDropdown === 'target' ? 'target' : null)) {
       activeDropdown = null
       return
     }
@@ -169,6 +279,8 @@ function setupMenuEventHandlers(
       handleLookupAction(selectedText)
     } else if (action === 'speak') {
       handleSpeakAction(selectedText, sourceLangCode)
+    } else if (action === 'highlight') {
+      handleHighlightAction()
     }
   })
 }
@@ -186,6 +298,21 @@ function handleLookupAction(selectedText: string): void {
   } catch {
     console.warn('[VocabExt] Extension context invalidated, please refresh page')
   }
+}
+
+/**
+ * Handle highlight action - highlight selected text using saved range.
+ */
+async function handleHighlightAction(): Promise<void> {
+  if (!savedSelectionRange) {
+    console.warn('[VocabExt] No saved selection range for highlight')
+    return
+  }
+
+  const color = getCurrentHighlightColor()
+  await highlightRange(savedSelectionRange, color)
+  savedSelectionRange = null
+  removeFloatingButton()
 }
 
 /**

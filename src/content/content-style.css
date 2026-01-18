@@ -825,3 +825,147 @@
   border-radius: 8px;
   gap: 6px;
 }
+
+/* Text Highlight Styles */
+.vocab-text-highlight {
+  background-color: var(--vocab-highlight-color, #ffeb3b);
+  border-radius: 3px;
+  padding: 1px 3px;
+  cursor: default;
+  transition: all 0.2s;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.vocab-text-highlight:hover {
+  filter: brightness(0.92);
+}
+
+/* Remove button - subtle icon at end of highlight */
+.vocab-highlight-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.vocab-highlight-remove svg {
+  pointer-events: none;
+}
+
+.vocab-text-highlight:hover .vocab-highlight-remove {
+  opacity: 1;
+}
+
+.vocab-highlight-remove:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: rgba(220, 38, 38, 0.9);
+}
+
+/* Highlight button group in floating menu */
+.vocab-highlight-group {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.vocab-highlight-group .vocab-menu-item[data-action="highlight"] {
+  border-radius: 16px 0 0 16px;
+  padding-right: 8px;
+  color: var(--vocab-gray-700);
+}
+
+.vocab-highlight-group .vocab-menu-item[data-action="highlight"]:hover {
+  background: var(--vocab-gray-100);
+  color: var(--vocab-primary-500);
+}
+
+.vocab-highlight-group .vocab-menu-item[data-action="highlight"] svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Color trigger button */
+.vocab-color-trigger {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 8px;
+  border-radius: 0 16px 16px 0;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 1px solid var(--vocab-gray-200);
+}
+
+.vocab-color-trigger:hover {
+  background: var(--vocab-gray-100);
+}
+
+.vocab-color-preview {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.vocab-color-trigger svg {
+  opacity: 0.5;
+  color: var(--vocab-gray-600);
+}
+
+/* Color dropdown */
+.vocab-color-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid var(--vocab-gray-200);
+  border-radius: var(--vocab-radius-md);
+  box-shadow: var(--vocab-shadow-md);
+  padding: 6px;
+  margin-top: 4px;
+  z-index: 100;
+  min-width: 120px;
+}
+
+.vocab-color-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--vocab-radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vocab-color-option:hover {
+  background: var(--vocab-gray-100);
+}
+
+.vocab-color-option.active {
+  background: var(--vocab-primary-50);
+}
+
+.vocab-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.vocab-color-name {
+  font-size: 12px;
+  color: var(--vocab-gray-700);
+}

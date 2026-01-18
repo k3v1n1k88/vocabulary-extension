@@ -213,7 +213,8 @@ const defaultSettings: UserSettings = {
   targetLanguage: 'vi',
   sourceLanguage: 'en', // default source for free translation
   useLLMTranslation: false, // disabled by default, use free API
-  llmProvider: 'openai' // backward compatible default
+  llmProvider: 'openai', // backward compatible default
+  highlightColor: '#ffeb3b' // default yellow highlight
 }
 
 export const useSettingsStore = create<SettingsState>()(

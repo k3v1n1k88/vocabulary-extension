@@ -338,7 +338,8 @@ describe('useSettingsStore', () => {
         targetLanguage: 'vi',
         sourceLanguage: 'en',
         useLLMTranslation: false,
-        llmProvider: 'openai'
+        llmProvider: 'openai',
+        highlightColor: '#ffeb3b'
       }
     })
   })

@@ -1,9 +1,10 @@
 import { defineManifest } from '@crxjs/vite-plugin'
+import packageJson from '../package.json'
 
 export default defineManifest({
   manifest_version: 3,
   name: 'Vocabulary Builder',
-  version: '1.0.1',
+  version: packageJson.version,
   description: 'Learn vocabulary with flashcards, spaced repetition, and context menu lookup',
 
   permissions: [

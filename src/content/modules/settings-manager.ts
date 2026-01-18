@@ -10,6 +10,7 @@ let cachedTargetLanguage = 'Vietnamese'
 let cachedSourceLanguage = 'English'
 let cachedSourceLangCode = 'en'
 let cachedUseLLMTranslation = false
+let cachedHighlightColor = '#ffeb3b' // Default yellow
 
 /**
  * Initialize settings from storage.
@@ -31,6 +32,7 @@ export function initSettings(): void {
           cachedSourceLanguage = sourceLang.name
         }
         cachedUseLLMTranslation = settings.useLLMTranslation ?? false
+        cachedHighlightColor = settings.highlightColor || '#ffeb3b'
       } catch (e) {
         console.warn('[VocabExt] Failed to parse settings:', e)
       }
@@ -54,6 +56,7 @@ export function initSettings(): void {
           cachedSourceLanguage = sourceLang.name
         }
         cachedUseLLMTranslation = settings.useLLMTranslation ?? false
+        cachedHighlightColor = settings.highlightColor || '#ffeb3b'
       } catch (e) {
         console.warn('[VocabExt] Failed to parse settings change:', e)
       }
@@ -136,4 +139,11 @@ export function setCachedTargetLanguage(langName: string): void {
 export function setCachedSourceLanguage(langName: string, langCode: string): void {
   cachedSourceLanguage = langName
   cachedSourceLangCode = langCode
+}
+
+/**
+ * Get cached highlight color.
+ */
+export function getHighlightColor(): string {
+  return cachedHighlightColor
 }

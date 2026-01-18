@@ -11,6 +11,7 @@ export interface FloatingMenuConfig {
   useLLMTranslation: boolean
   sourceLanguage: string
   targetLanguage: string
+  highlightColor: string
 }
 
 /**
@@ -49,16 +50,62 @@ export function buildAiBadgeHtml(useLLMTranslation: boolean): string {
   </span>`
 }
 
+// Highlight color presets (must match highlight-settings.tsx)
+export const HIGHLIGHT_COLORS = [
+  { value: '#ffeb3b', name: 'Yellow' },
+  { value: '#a5d6a7', name: 'Green' },
+  { value: '#90caf9', name: 'Blue' },
+  { value: '#f48fb1', name: 'Pink' },
+  { value: '#ffcc80', name: 'Orange' },
+  { value: '#ce93d8', name: 'Purple' }
+]
+
+/**
+ * Build highlight color options HTML for dropdown.
+ */
+export function buildHighlightColorOptionsHtml(activeColor: string): string {
+  return HIGHLIGHT_COLORS.map(color =>
+    `<div class="vocab-color-option${color.value === activeColor ? ' active' : ''}" data-color="${color.value}" title="${color.name}">
+      <span class="vocab-color-swatch" style="background-color: ${color.value}"></span>
+      <span class="vocab-color-name">${color.name}</span>
+    </div>`
+  ).join('')
+}
+
+/**
+ * Build highlight button with color dropdown HTML.
+ */
+export function buildHighlightButtonHtml(highlightColor: string): string {
+  const colorOptionsHtml = buildHighlightColorOptionsHtml(highlightColor)
+
+  return `<div class="vocab-highlight-group">
+    <div class="vocab-menu-item" data-action="highlight" title="Highlight text">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        <path d="m15 5 3 3"/>
+      </svg>
+      <span>Highlight</span>
+    </div>
+    <div class="vocab-color-trigger" data-action="change-highlight-color" title="Change color">
+      <span class="vocab-color-preview" style="background-color: ${highlightColor}"></span>
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="vocab-color-dropdown" style="display:none;">${colorOptionsHtml}</div>
+  </div>`
+}
+
 /**
  * Build complete floating menu HTML.
  */
 export function buildFloatingMenuHtml(config: FloatingMenuConfig): string {
-  const { isPhrase, useLLMTranslation, sourceLanguage, targetLanguage } = config
+  const { isPhrase, useLLMTranslation, sourceLanguage, targetLanguage, highlightColor } = config
 
   const sourceLangOptionsHtml = buildLangOptionsHtml(sourceLanguage)
   const targetLangOptionsHtml = buildLangOptionsHtml(targetLanguage)
   const sourceLangHtml = buildSourceLangHtml(sourceLanguage, useLLMTranslation)
   const aiIconHtml = buildAiBadgeHtml(useLLMTranslation)
+  const highlightHtml = buildHighlightButtonHtml(highlightColor)
 
   return `
     <div class="vocab-menu-row">
@@ -76,6 +123,7 @@ export function buildFloatingMenuHtml(config: FloatingMenuConfig): string {
           <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
         </svg>
       </div>
+      ${highlightHtml}
       <div class="vocab-menu-divider"></div>
       ${sourceLangHtml}
       <div class="vocab-menu-item vocab-target-lang-trigger" data-action="change-target-lang" title="Target language">

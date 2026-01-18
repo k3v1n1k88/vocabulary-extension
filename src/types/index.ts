@@ -85,6 +85,7 @@ export interface UserSettings {
   useLLMTranslation: boolean // true = use LLM provider, false = use free API
   llmProvider: LLMProvider // selected LLM provider
   llmModel?: string // selected model for current provider
+  highlightColor: string // hex color for text highlights (default: '#ffeb3b')
 }
 
 // Supported translation languages
@@ -135,6 +136,9 @@ export type MessageType =
   | 'UPDATE_REMINDER'
   | 'TEST_NOTIFICATION'
   | 'OPEN_OPTIONS_PAGE'
+  | 'SAVE_HIGHLIGHT'
+  | 'GET_HIGHLIGHTS'
+  | 'DELETE_HIGHLIGHT'
 
 export interface Message<T = unknown> {
   type: MessageType
@@ -185,3 +189,20 @@ export type PdfLookupResult =
   | { type: 'translation'; timestamp: number; data: TranslationResult }
   | { type: 'loading'; timestamp: number; text: string }
   | { type: 'error'; timestamp: number; error: string }
+
+// Text highlight types for persistent highlighting
+export interface TextHighlight {
+  id: string
+  text: string // The highlighted text content
+  url: string // Page URL where highlight exists
+  xpath: string // XPath to the text node
+  textOffset: number // Character offset within the text node
+  textLength: number // Length of highlighted text
+  color: string // Highlight color (hex)
+  createdAt: number // Timestamp
+}
+
+// Highlight storage structure (keyed by URL)
+export interface HighlightStorage {
+  [url: string]: TextHighlight[]
+}

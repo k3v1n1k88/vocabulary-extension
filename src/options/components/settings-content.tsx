@@ -4,6 +4,7 @@ import type { LLMProvider } from '@/types'
 import { StatItem } from '@/shared/components'
 import { LearningSettings } from './learning-settings'
 import { TranslationSettings } from './translation-settings'
+import { HighlightSettings } from './highlight-settings'
 import { DataManagement } from './data-management'
 import { AboutSection } from './about-section'
 import { useApiKeyManagement, useShortcutRecorder } from '../hooks'
@@ -80,6 +81,12 @@ export function SettingsContent() {
         onApiKeyFocus={handleApiKeyFocus}
         onApiKeyBlur={handleApiKeyBlur}
         onProviderChange={onProviderChange}
+      />
+
+      {/* Highlight Settings */}
+      <HighlightSettings
+        settings={settings}
+        onSettingsUpdate={updateSettings}
       />
 
       {/* Data Management */}
