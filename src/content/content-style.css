@@ -1,10 +1,93 @@
+/**
+ * Content Script Styles
+ * Uses same design tokens as main app for consistency.
+ * Variables duplicated here because content styles are injected into web pages.
+ */
+
+:root {
+  /* Primary - Blue */
+  --vocab-primary-50: #eff6ff;
+  --vocab-primary-100: #dbeafe;
+  --vocab-primary-500: #3b82f6;
+  --vocab-primary-600: #2563eb;
+
+  /* Success - Green */
+  --vocab-success-50: #f0fdf4;
+  --vocab-success-100: #dcfce7;
+  --vocab-success-500: #22c55e;
+  --vocab-success-700: #166534;
+
+  /* Error - Red */
+  --vocab-error-50: #fef2f2;
+  --vocab-error-100: #fee2e2;
+  --vocab-error-200: #fecaca;
+  --vocab-error-600: #dc2626;
+  --vocab-error-700: #991b1b;
+
+  /* Warning - Amber */
+  --vocab-warning-50: #fef3c7;
+  --vocab-warning-700: #92400e;
+
+  /* Gray - Neutrals */
+  --vocab-gray-100: #f3f4f6;
+  --vocab-gray-200: #e5e7eb;
+  --vocab-gray-300: #d1d5db;
+  --vocab-gray-400: #9ca3af;
+  --vocab-gray-500: #6b7280;
+  --vocab-gray-600: #4b5563;
+  --vocab-gray-700: #374151;
+  --vocab-gray-800: #1f2937;
+
+  /* Part of Speech */
+  --vocab-pos-bg: #e0f2fe;
+  --vocab-pos-text: #0369a1;
+
+  /* Translation */
+  --vocab-translation-bg: #fef3c7;
+  --vocab-translation-text: #92400e;
+  --vocab-translation-result-bg: #f0fdf4;
+  --vocab-translation-result-text: #166534;
+  --vocab-translation-result-border: #22c55e;
+
+  /* Synonyms/Antonyms */
+  --vocab-synonym-bg: #dcfce7;
+  --vocab-synonym-text: #166534;
+  --vocab-antonym-bg: #fee2e2;
+  --vocab-antonym-text: #991b1b;
+
+  /* AI/Purple */
+  --vocab-ai-400: #818cf8;
+  --vocab-ai-500: #6366f1;
+  --vocab-ai-600: #4f46e5;
+  --vocab-ai-700: #4338ca;
+  --vocab-ai-gradient: linear-gradient(135deg, #818cf8, #6366f1);
+
+  /* Type badge - Purple */
+  --vocab-type-bg: #ddd6fe;
+  --vocab-type-text: #7c3aed;
+
+  /* Shadows */
+  --vocab-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --vocab-shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+  --vocab-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* Border radius */
+  --vocab-radius-sm: 4px;
+  --vocab-radius-md: 8px;
+  --vocab-radius-lg: 12px;
+  --vocab-radius-full: 9999px;
+
+  /* Menu */
+  --vocab-menu-radius: 20px;
+}
+
 /* Floating Menu Styles */
 #vocab-floating-menu {
   position: relative;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
+  border-radius: var(--vocab-radius-md);
+  box-shadow: var(--vocab-shadow-md);
+  border: 1px solid var(--vocab-gray-200);
   overflow: visible;
   animation: menuSlideIn 0.15s ease-out;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -13,7 +96,7 @@
 
 /* Horizontal menu layout */
 #vocab-floating-menu.vocab-menu-horizontal {
-  border-radius: 20px;
+  border-radius: var(--vocab-menu-radius);
   padding: 4px;
 }
 
@@ -30,7 +113,7 @@
   gap: 4px;
   padding: 8px 14px;
   cursor: pointer;
-  color: #374151;
+  color: var(--vocab-gray-700);
   transition: all 0.15s;
   white-space: nowrap;
 }
@@ -42,12 +125,12 @@
 }
 
 .vocab-menu-item:hover {
-  background: #f3f4f6;
-  color: #3b82f6;
+  background: var(--vocab-gray-100);
+  color: var(--vocab-primary-500);
 }
 
 .vocab-menu-item:active {
-  background: #e5e7eb;
+  background: var(--vocab-gray-200);
 }
 
 .vocab-menu-item svg {
@@ -61,19 +144,19 @@
 
 .vocab-menu-item em {
   font-style: normal;
-  color: #3b82f6;
+  color: var(--vocab-primary-500);
   font-weight: 500;
 }
 
 .vocab-menu-item:hover em {
-  color: #2563eb;
+  color: var(--vocab-primary-600);
 }
 
 /* Vertical divider for horizontal menu */
 .vocab-menu-divider {
   width: 1px;
   height: 16px;
-  background: #e5e7eb;
+  background: var(--vocab-gray-200);
   margin: 0 4px;
 }
 
@@ -81,7 +164,7 @@
 .vocab-lang-short {
   font-size: 11px;
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--vocab-primary-500);
 }
 
 /* Language trigger with dropdown arrow */
@@ -93,8 +176,8 @@
   gap: 4px;
   padding: 2px 6px;
   margin-left: 4px;
-  background: #eff6ff;
-  border-radius: 4px;
+  background: var(--vocab-primary-50);
+  border-radius: var(--vocab-radius-sm);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -102,7 +185,7 @@
 .vocab-lang-trigger:hover,
 .vocab-source-lang-trigger:hover,
 .vocab-target-lang-trigger:hover {
-  background: #dbeafe;
+  background: var(--vocab-primary-100);
 }
 
 .vocab-lang-trigger svg,
@@ -113,7 +196,7 @@
 
 /* Language arrow between source and target */
 .vocab-lang-arrow {
-  color: #9ca3af;
+  color: var(--vocab-gray-400);
   font-size: 12px;
   margin: 0 2px;
 }
@@ -125,30 +208,30 @@
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--vocab-gray-200);
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--vocab-radius-md) var(--vocab-radius-md);
   max-height: 200px;
   overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--vocab-shadow-sm);
   z-index: 10;
 }
 
 .vocab-lang-option {
   padding: 8px 14px;
   cursor: pointer;
-  color: #374151;
+  color: var(--vocab-gray-700);
   font-size: 12px;
   transition: all 0.15s;
 }
 
 .vocab-lang-option:hover {
-  background: #f3f4f6;
+  background: var(--vocab-gray-100);
 }
 
 .vocab-lang-option.active {
-  background: #eff6ff;
-  color: #3b82f6;
+  background: var(--vocab-primary-50);
+  color: var(--vocab-primary-500);
   font-weight: 500;
 }
 
@@ -172,13 +255,13 @@
 
 .vocab-tooltip-content {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: var(--vocab-radius-lg);
+  box-shadow: var(--vocab-shadow-lg);
   padding: 16px;
   width: max-content;
   min-width: 300px;
   max-width: min(450px, 90vw);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--vocab-gray-200);
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -224,7 +307,7 @@
 .vocab-word {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--vocab-gray-800);
 }
 
 .vocab-audio-btn {
@@ -234,31 +317,31 @@
   width: 28px;
   height: 28px;
   border: none;
-  background: #f3f4f6;
+  background: var(--vocab-gray-100);
   border-radius: 50%;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--vocab-gray-500);
   transition: all 0.2s;
 }
 
 .vocab-audio-btn:hover {
-  background: #3b82f6;
+  background: var(--vocab-primary-500);
   color: white;
 }
 
 .vocab-pronunciation {
   display: block;
-  color: #6b7280;
+  color: var(--vocab-gray-500);
   font-size: 13px;
   margin-top: 4px;
 }
 
 .vocab-pos {
   display: inline-block;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--vocab-pos-bg);
+  color: var(--vocab-pos-text);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--vocab-radius-sm);
   font-size: 12px;
   font-weight: 500;
   margin-top: 6px;
@@ -268,7 +351,7 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--vocab-gray-400);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
@@ -276,25 +359,25 @@
 
 .vocab-definition {
   margin-bottom: 12px;
-  color: #374151;
+  color: var(--vocab-gray-700);
 }
 
 .vocab-vietnamese {
-  background: #fef3c7;
+  background: var(--vocab-translation-bg);
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--vocab-radius-md);
   margin-bottom: 12px;
-  color: #92400e;
+  color: var(--vocab-translation-text);
 }
 
 /* Translation error message */
 .vocab-translation-error {
-  background: #fef2f2;
+  background: var(--vocab-error-50);
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--vocab-radius-md);
   margin-bottom: 12px;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  color: var(--vocab-error-700);
+  border: 1px solid var(--vocab-error-200);
 }
 
 .vocab-translation-error .vocab-label {
@@ -307,13 +390,13 @@
   display: block;
   font-size: 12px;
   margin-bottom: 8px;
-  color: #dc2626;
+  color: var(--vocab-error-600);
 }
 
 .vocab-translation-error .vocab-settings-link {
   display: inline-block;
   font-size: 12px;
-  color: #2563eb;
+  color: var(--vocab-primary-600);
   text-decoration: none;
   font-weight: 500;
 }
@@ -324,15 +407,15 @@
 
 .vocab-example {
   margin-bottom: 12px;
-  color: #4b5563;
+  color: var(--vocab-gray-600);
 }
 
 .vocab-example em {
   display: block;
   margin-top: 4px;
   padding-left: 12px;
-  border-left: 2px solid #d1d5db;
-  color: #6b7280;
+  border-left: 2px solid var(--vocab-gray-300);
+  color: var(--vocab-gray-500);
 }
 
 .vocab-synonyms,
@@ -349,17 +432,17 @@
 }
 
 .vocab-tag-syn {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--vocab-synonym-bg);
+  color: var(--vocab-synonym-text);
 }
 
 .vocab-tag-ant {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--vocab-antonym-bg);
+  color: var(--vocab-antonym-text);
 }
 
 .vocab-actions {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--vocab-gray-200);
   padding-top: 12px;
   margin-top: 4px;
 }
@@ -371,10 +454,10 @@
   gap: 8px;
   width: 100%;
   padding: 10px 16px;
-  background: #3b82f6;
+  background: var(--vocab-primary-500);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--vocab-radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -382,11 +465,11 @@
 }
 
 .vocab-save-btn:hover {
-  background: #2563eb;
+  background: var(--vocab-primary-600);
 }
 
 .vocab-save-btn.saved {
-  background: #22c55e;
+  background: var(--vocab-success-500);
 }
 
 .vocab-save-btn:disabled {
@@ -399,14 +482,14 @@
   align-items: center;
   gap: 12px;
   padding: 16px 0;
-  color: #6b7280;
+  color: var(--vocab-gray-500);
 }
 
 .vocab-loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 2px solid var(--vocab-gray-200);
+  border-top-color: var(--vocab-primary-500);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -417,10 +500,76 @@
   }
 }
 
-/* Error state */
+/* Error card - improved design */
+.vocab-error-card {
+  background: var(--vocab-error-50);
+  border: 1px solid var(--vocab-error-200);
+  border-radius: var(--vocab-radius-lg);
+  padding: 16px;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.vocab-error-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.vocab-error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--vocab-error-100);
+  border-radius: 50%;
+  color: var(--vocab-error-600);
+  flex-shrink: 0;
+}
+
+.vocab-error-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vocab-error-700);
+}
+
+.vocab-error-code {
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 600;
+  background: var(--vocab-error-100);
+  color: var(--vocab-error-600);
+  border-radius: 4px;
+}
+
+.vocab-error-provider {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vocab-error-600);
+  margin-bottom: 4px;
+}
+
+.vocab-error-message {
+  margin: 0 0 12px 0;
+  padding: 10px 12px;
+  background: white;
+  border-radius: var(--vocab-radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vocab-gray-700);
+  border: 1px solid var(--vocab-error-100);
+  word-break: break-word;
+}
+
+/* Legacy error state (keep for backwards compat) */
 .vocab-error {
   text-align: center;
-  color: #dc2626;
+  color: var(--vocab-error-600);
 }
 
 .vocab-error p {
@@ -431,13 +580,14 @@
 .vocab-settings-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  margin-top: 10px;
-  padding: 8px 14px;
-  background: #4F46E5;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--vocab-gray-700);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--vocab-radius-md);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -445,7 +595,7 @@
 }
 
 .vocab-settings-btn:hover {
-  background: #4338CA;
+  background: var(--vocab-gray-800);
 }
 
 .vocab-settings-btn svg {
@@ -469,7 +619,7 @@
 .vocab-translation .vocab-word {
   font-size: 15px;
   font-weight: 500;
-  color: #374151;
+  color: var(--vocab-gray-700);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -480,8 +630,8 @@
 
 .vocab-type-badge {
   display: inline-block;
-  background: #ddd6fe;
-  color: #7c3aed;
+  background: var(--vocab-type-bg);
+  color: var(--vocab-type-text);
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 10px;
@@ -500,10 +650,10 @@
 
 .vocab-free-badge {
   display: inline-block;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--vocab-warning-50);
+  color: var(--vocab-warning-700);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--vocab-radius-sm);
   font-size: 10px;
   font-weight: 500;
 }
@@ -512,10 +662,10 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: var(--vocab-ai-gradient);
   color: white;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--vocab-radius-sm);
   font-size: 10px;
   font-weight: 500;
   margin-left: 6px;
@@ -527,7 +677,7 @@
 
 .vocab-ai-hint {
   font-size: 11px;
-  color: #6366f1;
+  color: var(--vocab-ai-500);
   text-decoration: none;
   opacity: 0.8;
   transition: opacity 0.2s;
@@ -542,7 +692,7 @@
 .vocab-ai-upsell {
   text-align: center;
   padding: 8px 0;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--vocab-gray-200);
   margin-top: 8px;
 }
 
@@ -555,7 +705,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #3b82f6;
+  color: var(--vocab-primary-500);
   cursor: pointer;
   padding: 1px 4px;
   border-radius: 3px;
@@ -563,7 +713,7 @@
 }
 
 .vocab-source-lang-trigger:hover {
-  background: #eff6ff;
+  background: var(--vocab-primary-50);
 }
 
 .vocab-source-lang-trigger svg {
@@ -576,9 +726,9 @@
   top: 100%;
   left: 0;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--vocab-gray-200);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--vocab-shadow-md);
   max-height: 180px;
   overflow-y: auto;
   z-index: 100;
@@ -588,7 +738,7 @@
 
 .vocab-lang-info {
   display: block;
-  color: #9ca3af;
+  color: var(--vocab-gray-400);
   font-size: 11px;
   margin-top: 2px;
   position: relative;
@@ -599,7 +749,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #3b82f6;
+  color: var(--vocab-primary-500);
   cursor: pointer;
   padding: 1px 4px;
   border-radius: 3px;
@@ -607,7 +757,7 @@
 }
 
 .vocab-target-lang-trigger:hover {
-  background: #eff6ff;
+  background: var(--vocab-primary-50);
 }
 
 .vocab-target-lang-trigger svg {
@@ -620,9 +770,9 @@
   top: 100%;
   left: 0;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--vocab-gray-200);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--vocab-shadow-md);
   max-height: 180px;
   overflow-y: auto;
   z-index: 100;
@@ -635,13 +785,13 @@
 }
 
 .vocab-translated-text {
-  background: #f0fdf4;
+  background: var(--vocab-translation-result-bg);
   padding: 10px 12px;
-  border-radius: 8px;
-  color: #166534;
+  border-radius: var(--vocab-radius-md);
+  color: var(--vocab-translation-result-text);
   font-size: 14px;
   line-height: 1.5;
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--vocab-translation-result-border);
 }
 
 .vocab-copy-btn {
@@ -650,10 +800,10 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 16px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--vocab-gray-100);
+  color: var(--vocab-gray-700);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--vocab-radius-md);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -661,7 +811,7 @@
 }
 
 .vocab-copy-btn:hover {
-  background: #e5e7eb;
+  background: var(--vocab-gray-200);
 }
 
 .vocab-translation .vocab-actions {

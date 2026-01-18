@@ -1,37 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Word, FlashcardData, UserStats, UserSettings, TabType } from '@/types'
-
-// Chrome storage adapter for Zustand
-const chromeStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    try {
-      const result = await chrome.storage.local.get(name)
-      return result[name] ?? null
-    } catch (error) {
-      console.warn('[VocabExt] Storage read failed:', error)
-      return null
-    }
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    try {
-      await chrome.storage.local.set({ [name]: value })
-    } catch (error) {
-      console.error('[VocabExt] Storage write failed:', error)
-      // Could be quota exceeded
-      if (error instanceof Error && error.message.includes('QUOTA')) {
-        throw new Error('Storage quota exceeded. Please delete some words.')
-      }
-    }
-  },
-  removeItem: async (name: string): Promise<void> => {
-    try {
-      await chrome.storage.local.remove(name)
-    } catch (error) {
-      console.warn('[VocabExt] Storage remove failed:', error)
-    }
-  }
-}
+import { chromeStorage } from './chrome-storage-adapter'
 
 // Vocabulary store
 interface VocabularyState {

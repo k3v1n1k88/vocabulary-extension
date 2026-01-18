@@ -3,11 +3,19 @@
  * Note for MacOS: Ensure Chrome has notification permission in System Settings > Notifications
  */
 
+import {
+  type WordPreview,
+  getNotificationData,
+  getRandomWordPreview,
+  parseSettings,
+  parseVocabData,
+  getDueCards
+} from './notification-helpers'
+
 /**
- * Detect if running on MacOS (requireInteraction not supported on MacOS)
+ * Detect if running on MacOS (requireInteraction not supported on MacOS).
  */
 function isMacOS(): boolean {
-  // Service workers don't have navigator.userAgentData, use platform check
   return typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || '')
 }
 
@@ -16,17 +24,14 @@ const ALARM_DUE_CHECK = 'due-cards-check'
 const DEFAULT_REMINDER_INTERVAL = 60 // 1 hour in minutes
 
 /**
- * Schedule interval-based study reminder
- * @param intervalMinutes - Interval in minutes (default: 60)
+ * Schedule interval-based study reminder.
  */
 export async function scheduleStudyReminder(intervalMinutes?: number): Promise<void> {
-  // Clear existing alarm
   await chrome.alarms.clear(ALARM_STUDY_REMINDER)
 
   const interval = intervalMinutes || DEFAULT_REMINDER_INTERVAL
   if (interval <= 0) return
 
-  // Create alarm with interval
   await chrome.alarms.create(ALARM_STUDY_REMINDER, {
     delayInMinutes: interval,
     periodInMinutes: interval
@@ -36,25 +41,19 @@ export async function scheduleStudyReminder(intervalMinutes?: number): Promise<v
 }
 
 /**
- * Schedule periodic check for due cards (every hour)
+ * Schedule periodic check for due cards (every hour).
  */
 export async function scheduleDueCardsCheck(): Promise<void> {
   await chrome.alarms.clear(ALARM_DUE_CHECK)
 
   await chrome.alarms.create(ALARM_DUE_CHECK, {
     delayInMinutes: 60,
-    periodInMinutes: 60 // Check every hour
+    periodInMinutes: 60
   })
 }
 
-interface WordPreview {
-  word: string
-  definition: string
-  translation?: string
-}
-
 /**
- * Show notification for daily study reminder with a random word preview
+ * Show notification for daily study reminder with a random word preview.
  */
 export async function showDailyReminder(
   dueCount: number,
@@ -62,10 +61,7 @@ export async function showDailyReminder(
   randomWord?: WordPreview
 ): Promise<void> {
   try {
-    // Check notification permission first
     const permission = await chrome.permissions.contains({ permissions: ['notifications'] })
-    console.log('[VocabExt] Notification permission:', permission)
-
     if (!permission) {
       console.warn('[VocabExt] Notification permission not granted')
       return
@@ -76,7 +72,6 @@ export async function showDailyReminder(
     let message = ''
 
     if (randomWord) {
-      // Show word preview in notification
       title = `Learn: "${randomWord.word}"`
       message = randomWord.definition.slice(0, 100)
       if (randomWord.translation) {
@@ -93,7 +88,6 @@ export async function showDailyReminder(
       message = 'Start building your vocabulary today!'
     }
 
-    // Build notification options - requireInteraction not supported on MacOS
     const notificationId = await chrome.notifications.create('daily-reminder-' + Date.now(), {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
@@ -109,7 +103,7 @@ export async function showDailyReminder(
 }
 
 /**
- * Show notification when cards are due
+ * Show notification when cards are due.
  */
 export async function showDueCardsNotification(dueCount: number): Promise<void> {
   if (dueCount === 0) return
@@ -124,7 +118,7 @@ export async function showDueCardsNotification(dueCount: number): Promise<void> 
 }
 
 /**
- * Show streak at risk notification
+ * Show streak at risk notification.
  */
 export async function showStreakAtRiskNotification(streak: number): Promise<void> {
   if (streak === 0) return
@@ -139,7 +133,7 @@ export async function showStreakAtRiskNotification(streak: number): Promise<void
 }
 
 /**
- * Show word saved notification
+ * Show word saved notification.
  */
 export async function showWordSavedNotification(word: string): Promise<void> {
   await chrome.notifications.create(`word-saved-${Date.now()}`, {
@@ -152,126 +146,58 @@ export async function showWordSavedNotification(word: string): Promise<void> {
 }
 
 /**
- * Handle alarm events
+ * Handle study reminder alarm.
+ */
+async function handleStudyReminderAlarm(): Promise<void> {
+  const data = await getNotificationData()
+
+  if (!data.settings?.notificationsEnabled) return
+
+  const randomWord = getRandomWordPreview(data.words, data.dueCards)
+  await showDailyReminder(data.dueCount, data.streak, randomWord)
+}
+
+/**
+ * Handle due cards check alarm.
+ */
+async function handleDueCardsCheckAlarm(): Promise<void> {
+  const result = await chrome.storage.local.get(['vocabulary-storage', 'settings-storage'])
+
+  const settings = parseSettings(result)
+  if (!settings?.notificationsEnabled) return
+
+  const { flashcards } = parseVocabData(result)
+  const dueCards = getDueCards(flashcards)
+
+  // Only notify if more than 5 cards are due
+  if (dueCards.length >= 5) {
+    await showDueCardsNotification(dueCards.length)
+  }
+}
+
+/**
+ * Handle alarm events.
  */
 export function setupAlarmHandler(): void {
   chrome.alarms.onAlarm.addListener(async (alarm) => {
     console.log('[VocabExt] Alarm triggered:', alarm.name)
 
     if (alarm.name === ALARM_STUDY_REMINDER) {
-      // Get due cards count and streak
-      const result = await chrome.storage.local.get(['vocabulary-storage', 'stats-storage', 'settings-storage'])
-
-      // Check if notifications are enabled
-      let settings = null
-      if (result['settings-storage']) {
-        try {
-          settings = JSON.parse(result['settings-storage'])?.state?.settings
-        } catch (e) {
-          console.warn('[VocabExt] Failed to parse settings:', e)
-        }
-      }
-
-      if (!settings?.notificationsEnabled) return
-
-      // Get due cards count
-      let vocabData = null
-      if (result['vocabulary-storage']) {
-        try {
-          vocabData = JSON.parse(result['vocabulary-storage'])
-        } catch (e) {
-          console.warn('[VocabExt] Failed to parse vocabulary data:', e)
-        }
-      }
-
-      const flashcards = vocabData?.state?.flashcards || []
-      const words = vocabData?.state?.words || []
-      const now = Date.now()
-      const dueCards = flashcards.filter(([, card]: [string, { nextReview: number }]) =>
-        card.nextReview <= now
-      )
-      const dueCount = dueCards.length
-
-      // Get streak
-      let statsData = null
-      if (result['stats-storage']) {
-        try {
-          statsData = JSON.parse(result['stats-storage'])
-        } catch (e) {
-          console.warn('[VocabExt] Failed to parse stats data:', e)
-        }
-      }
-      const streak = statsData?.state?.stats?.currentStreak || 0
-
-      // Get a random word to show in notification
-      let randomWord: WordPreview | undefined = undefined
-      if (dueCount > 0 && words.length > 0) {
-        const randomDueCard = dueCards[Math.floor(Math.random() * dueCards.length)]
-        const wordData = words.find((w: { id: string }) => w.id === randomDueCard[0])
-        if (wordData) {
-          randomWord = {
-            word: wordData.word,
-            definition: wordData.definition,
-            translation: wordData.vietnameseTranslation
-          }
-        }
-      } else if (words.length > 0) {
-        const wordData = words[Math.floor(Math.random() * words.length)]
-        randomWord = {
-          word: wordData.word,
-          definition: wordData.definition,
-          translation: wordData.vietnameseTranslation
-        }
-      }
-
-      await showDailyReminder(dueCount, streak, randomWord)
+      await handleStudyReminderAlarm()
     }
 
     if (alarm.name === ALARM_DUE_CHECK) {
-      // Check for due cards and notify if many are waiting
-      const result = await chrome.storage.local.get(['vocabulary-storage', 'settings-storage'])
-
-      let settings = null
-      if (result['settings-storage']) {
-        try {
-          settings = JSON.parse(result['settings-storage'])?.state?.settings
-        } catch (e) {
-          console.warn('[VocabExt] Failed to parse settings:', e)
-        }
-      }
-
-      if (!settings?.notificationsEnabled) return
-
-      let vocabData = null
-      if (result['vocabulary-storage']) {
-        try {
-          vocabData = JSON.parse(result['vocabulary-storage'])
-        } catch (e) {
-          console.warn('[VocabExt] Failed to parse vocabulary data:', e)
-        }
-      }
-
-      const flashcards = vocabData?.state?.flashcards || []
-      const now = Date.now()
-      const dueCount = flashcards.filter(([, card]: [string, { nextReview: number }]) =>
-        card.nextReview <= now
-      ).length
-
-      // Only notify if more than 5 cards are due
-      if (dueCount >= 5) {
-        await showDueCardsNotification(dueCount)
-      }
+      await handleDueCardsCheckAlarm()
     }
   })
 }
 
 /**
- * Handle notification button clicks
+ * Handle notification button clicks.
  */
 export function setupNotificationClickHandler(): void {
   chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
     if (buttonIndex === 0) {
-      // Open popup to study
       chrome.action.openPopup()
     }
     chrome.notifications.clear(notificationId)
@@ -284,29 +210,20 @@ export function setupNotificationClickHandler(): void {
 }
 
 /**
- * Initialize notification system
+ * Initialize notification system.
  */
 export async function initNotifications(): Promise<void> {
-  // Setup handlers
   setupAlarmHandler()
   setupNotificationClickHandler()
 
   // Get settings and schedule reminders
   const result = await chrome.storage.local.get(['settings-storage'])
-  let settings = null
-  if (result['settings-storage']) {
-    try {
-      settings = JSON.parse(result['settings-storage'])?.state?.settings
-    } catch (e) {
-      console.warn('[VocabExt] Failed to parse settings:', e)
-    }
-  }
+  const settings = parseSettings(result)
 
   if (settings?.notificationsEnabled) {
     await scheduleStudyReminder(settings?.reminderInterval)
   }
 
-  // Start due cards check
   await scheduleDueCardsCheck()
 
   console.log('[VocabExt] Notification system initialized')

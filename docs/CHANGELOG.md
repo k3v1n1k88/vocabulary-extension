@@ -36,6 +36,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Codebase Refactoring**: Improved modularity and maintainability
+  - Extracted tooltip handlers to dedicated modules
+  - Created reusable shared components (icons, lang-dropdown)
+  - Split large components into focused modules
+  - Added custom React hooks for API key management and shortcut recording
+  - All files now ≤265 lines (excluding tests)
+
 ---
 
 ## [1.0.1] - 2026-01-15

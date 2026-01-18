@@ -1,6 +1,6 @@
 # Tech Stack: Vocabulary Chrome Extension
 
-**Date:** January 10, 2026 | **Status:** Approved
+**Updated:** January 18, 2026 | **Version:** 1.0.2
 
 ---
 
@@ -14,29 +14,37 @@
 | **Build Tool** | Vite + CRXJS | Zero-config, HMR for all extension contexts |
 | **State** | Zustand | Lightweight (2KB), hooks API, chrome.storage adapter |
 | **Styling** | Tailwind CSS | Utility-first, purges unused styles |
-| **Backend** | Firebase | Auth + Firestore, generous free tier |
+| **Storage** | chrome.storage.local | Offline-first, no backend needed |
 | **Algorithm** | SM-2 | Simple, proven spaced repetition |
+| **Testing** | Vitest | Fast, Vite-native, 127 tests |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Chrome Extension                  │
-├─────────────────────────────────────────────────────┤
-│  Content Script     │  Background Worker │  Popup   │
-│  (DOM interaction)  │  (Firebase, APIs)  │  (React) │
-│         ↓           │         ↓          │    ↓     │
-│  Right-click menu   │  Auth, Firestore   │  UI/UX   │
-│  Word detection     │  Message routing   │  State   │
-└─────────────────────────────────────────────────────┘
-                          │
-                          ↓
-                  ┌───────────────┐
-                  │   Firebase    │
-                  │ Auth+Firestore│
-                  └───────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     Chrome Extension                          │
+├────────────────┬─────────────────┬─────────────┬─────────────┤
+│ Content Script │ Background      │ Popup/UI    │ Side Panel  │
+│ - Floating menu│ - Context menu  │ - Dashboard │ - PDF lookup│
+│ - Tooltip UI   │ - TTS audio     │ - Study     │ - Results   │
+│ - Word detect  │ - Notifications │ - Vocabulary│             │
+│ - Save word    │ - Message hub   │ - Settings  │             │
+└────────────────┴─────────────────┴─────────────┴─────────────┘
+                              │
+                      chrome.storage.local
+                              │
+              ┌───────────────┴───────────────┐
+              │         External APIs          │
+              ├────────────────────────────────┤
+              │ • Free Dictionary API          │
+              │ • MyMemory Translation API     │
+              │ • Google TTS                   │
+              │ • AI Providers (optional):     │
+              │   OpenAI, Gemini, xAI Grok,    │
+              │   OpenRouter, Groq, Mistral    │
+              └────────────────────────────────┘
 ```
 
 ---
@@ -53,16 +61,22 @@
 - Simpler API for extension scope
 - Built-in persistence adapter for chrome.storage
 
-### Why Firebase over Supabase?
-- User requested Firebase
-- Mature Chrome extension integration docs
-- `firebase/auth/web-extension` solves MV3 CSP issues
+### Why Local Storage over Firebase?
+- Simpler architecture, no auth needed
+- Full offline support
+- No privacy concerns with cloud sync
+- chrome.storage.local = 10MB (sufficient for vocabulary)
 
 ### Why SM-2 over FSRS?
-- Simpler implementation (~50 lines)
+- Simpler implementation (~100 lines)
 - No ML training required
 - Sufficient for 100-1000 vocabulary cards
 - Can upgrade to FSRS later if needed
+
+### Why Multiple AI Providers?
+- User choice and flexibility
+- Different pricing tiers
+- API redundancy if one fails
 
 ---
 
@@ -73,8 +87,7 @@
   "dependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "zustand": "^4.5.0",
-    "firebase": "^10.14.0"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
@@ -82,50 +95,41 @@
     "@crxjs/vite-plugin": "^2.0.0",
     "@types/chrome": "^0.0.270",
     "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0"
+    "vitest": "^2.0.0"
   }
 }
 ```
 
 ---
 
-## File Structure
+## External APIs
 
-```
-src/
-├── manifest.ts           # MV3 manifest (CRXJS)
-├── background/
-│   └── service-worker.ts # Firebase init, message handlers
-├── content/
-│   └── content-script.ts # Context menu, word detection
-├── popup/
-│   ├── index.html
-│   ├── App.tsx           # Main popup UI
-│   └── components/       # React components
-├── options/
-│   └── Options.tsx       # Settings page
-├── shared/
-│   ├── store.ts          # Zustand + chrome.storage
-│   ├── firebase.ts       # Firebase config
-│   └── spaced-repetition.ts # SM-2 algorithm
-└── types/
-    └── index.ts          # TypeScript definitions
-```
+| API | Purpose | Auth |
+|-----|---------|------|
+| Free Dictionary API | Word definitions | None |
+| MyMemory Translation | Free translation | None |
+| Google TTS | Audio pronunciation | None |
+| OpenAI | AI translation | API key |
+| Google Gemini | AI translation | API key |
+| xAI Grok | AI translation | API key |
+| OpenRouter | AI translation | API key |
+| Groq | AI translation | API key |
+| Mistral | AI translation | API key |
 
 ---
 
 ## Browser Support
 
-- Chrome 88+ (Manifest V3 baseline)
-- Edge 88+ (Chromium-based)
-- Brave (Chromium-based)
+- Chrome 114+ (Side Panel support)
+- Edge 114+ (Chromium-based)
+- Brave (Chromium-based, limited)
 
 ---
 
 ## Constraints
 
 1. **MV3 Service Workers**: Ephemeral (terminate after ~30s idle)
-2. **Firebase CSP**: Must use `firebase/auth/web-extension`
-3. **Storage Limits**: chrome.storage.sync = 100KB, local = 10MB
-4. **Offline**: Firestore IndexedDB persistence in popup only
+2. **Storage Limits**: chrome.storage.local = 10MB
+3. **Side Panel**: Requires Chrome 114+
+4. **TTS**: Google TTS via proxy for CORS
+5. **AI Translation**: Requires user-provided API keys

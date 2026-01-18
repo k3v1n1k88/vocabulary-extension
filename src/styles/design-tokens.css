@@ -1,0 +1,203 @@
+/**
+ * Design Tokens - Single Source of Truth for Vocabulary Extension
+ *
+ * Usage:
+ * - CSS: var(--vocab-primary-500)
+ * - Tailwind: Uses these via config mapping
+ *
+ * Categories:
+ * - Colors: primary, success, error, warning, gray, streak, ai
+ * - Typography: font-family, font-sizes
+ * - Spacing: consistent spacing scale
+ * - Borders: radius, widths
+ * - Shadows: elevation levels
+ * - Z-Index: layering hierarchy
+ */
+
+:root {
+  /* ==================== COLORS ==================== */
+
+  /* Primary - Blue (actions, links, interactive) */
+  --vocab-primary-50: #eff6ff;
+  --vocab-primary-100: #dbeafe;
+  --vocab-primary-200: #bfdbfe;
+  --vocab-primary-300: #93c5fd;
+  --vocab-primary-400: #60a5fa;
+  --vocab-primary-500: #3b82f6;
+  --vocab-primary-600: #2563eb;
+  --vocab-primary-700: #1d4ed8;
+  --vocab-primary-800: #1e40af;
+  --vocab-primary-900: #1e3a8a;
+
+  /* Success - Green (saved, completed, positive) */
+  --vocab-success-50: #f0fdf4;
+  --vocab-success-100: #dcfce7;
+  --vocab-success-200: #bbf7d0;
+  --vocab-success-300: #86efac;
+  --vocab-success-400: #4ade80;
+  --vocab-success-500: #22c55e;
+  --vocab-success-600: #16a34a;
+  --vocab-success-700: #166534;
+
+  /* Error - Red (errors, destructive, negative) */
+  --vocab-error-50: #fef2f2;
+  --vocab-error-100: #fee2e2;
+  --vocab-error-200: #fecaca;
+  --vocab-error-300: #fca5a5;
+  --vocab-error-400: #f87171;
+  --vocab-error-500: #ef4444;
+  --vocab-error-600: #dc2626;
+  --vocab-error-700: #991b1b;
+
+  /* Warning/Amber - (caution, free tier, alerts) */
+  --vocab-warning-50: #fef3c7;
+  --vocab-warning-100: #fde68a;
+  --vocab-warning-200: #fcd34d;
+  --vocab-warning-500: #f59e0b;
+  --vocab-warning-600: #d97706;
+  --vocab-warning-700: #92400e;
+
+  /* Streak/Orange - (streaks, achievements) */
+  --vocab-streak-50: #fff7ed;
+  --vocab-streak-100: #ffedd5;
+  --vocab-streak-200: #fed7aa;
+  --vocab-streak-300: #fdba74;
+  --vocab-streak-400: #fb923c;
+  --vocab-streak-500: #f97316;
+  --vocab-streak-600: #ea580c;
+
+  /* Gray - (text, borders, backgrounds) */
+  --vocab-gray-50: #f9fafb;
+  --vocab-gray-100: #f3f4f6;
+  --vocab-gray-200: #e5e7eb;
+  --vocab-gray-300: #d1d5db;
+  --vocab-gray-400: #9ca3af;
+  --vocab-gray-500: #6b7280;
+  --vocab-gray-600: #4b5563;
+  --vocab-gray-700: #374151;
+  --vocab-gray-800: #1f2937;
+  --vocab-gray-900: #111827;
+
+  /* AI/Purple - (AI features, premium) */
+  --vocab-ai-400: #818cf8;
+  --vocab-ai-500: #6366f1;
+  --vocab-ai-600: #4f46e5;
+  --vocab-ai-gradient: linear-gradient(135deg, #818cf8, #6366f1);
+
+  /* Part of Speech - Blue tint */
+  --vocab-pos-bg: #e0f2fe;
+  --vocab-pos-text: #0369a1;
+
+  /* Vietnamese/Translation - Yellow/Amber tint */
+  --vocab-translation-bg: #fef3c7;
+  --vocab-translation-text: #92400e;
+  --vocab-translation-result-bg: #f0fdf4;
+  --vocab-translation-result-text: #166534;
+  --vocab-translation-result-border: #22c55e;
+
+  /* Synonyms - Green tint */
+  --vocab-synonym-bg: #dcfce7;
+  --vocab-synonym-text: #166534;
+
+  /* Antonyms - Red tint */
+  --vocab-antonym-bg: #fee2e2;
+  --vocab-antonym-text: #991b1b;
+
+  /* ==================== TYPOGRAPHY ==================== */
+
+  --vocab-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Font Sizes */
+  --vocab-text-2xs: 10px;
+  --vocab-text-xs: 11px;
+  --vocab-text-sm: 12px;
+  --vocab-text-base: 13px;
+  --vocab-text-md: 14px;
+  --vocab-text-lg: 16px;
+  --vocab-text-xl: 20px;
+  --vocab-text-2xl: 22px;
+
+  /* Font Weights */
+  --vocab-font-normal: 400;
+  --vocab-font-medium: 500;
+  --vocab-font-semibold: 600;
+  --vocab-font-bold: 700;
+
+  /* Line Heights */
+  --vocab-leading-tight: 1.25;
+  --vocab-leading-normal: 1.5;
+  --vocab-leading-relaxed: 1.625;
+
+  /* ==================== SPACING ==================== */
+
+  --vocab-space-0: 0;
+  --vocab-space-1: 4px;
+  --vocab-space-2: 8px;
+  --vocab-space-3: 12px;
+  --vocab-space-4: 16px;
+  --vocab-space-5: 20px;
+  --vocab-space-6: 24px;
+
+  /* ==================== BORDERS ==================== */
+
+  /* Border Radius */
+  --vocab-radius-sm: 4px;
+  --vocab-radius-md: 6px;
+  --vocab-radius-lg: 8px;
+  --vocab-radius-xl: 12px;
+  --vocab-radius-2xl: 16px;
+  --vocab-radius-full: 9999px;
+
+  /* Border Widths */
+  --vocab-border-width: 1px;
+  --vocab-border-width-2: 2px;
+  --vocab-border-width-3: 3px;
+
+  /* ==================== SHADOWS ==================== */
+
+  --vocab-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --vocab-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --vocab-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --vocab-shadow-xl: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+  /* ==================== Z-INDEX ==================== */
+
+  --vocab-z-dropdown: 10;
+  --vocab-z-sticky: 100;
+  --vocab-z-menu: 999998;
+  --vocab-z-tooltip: 999999;
+
+  /* ==================== TRANSITIONS ==================== */
+
+  --vocab-transition-fast: 0.15s ease;
+  --vocab-transition-normal: 0.2s ease;
+  --vocab-transition-slow: 0.3s ease;
+
+  /* ==================== COMPONENT-SPECIFIC ==================== */
+
+  /* Tooltip */
+  --vocab-tooltip-min-width: 300px;
+  --vocab-tooltip-max-width: min(450px, 90vw);
+  --vocab-tooltip-min-width-lg: 350px;
+  --vocab-tooltip-max-width-lg: 500px;
+
+  /* Translation tooltip */
+  --vocab-translation-tooltip-min-width: 320px;
+  --vocab-translation-tooltip-max-width: min(520px, 90vw);
+  --vocab-translation-tooltip-min-width-lg: 400px;
+  --vocab-translation-tooltip-max-width-lg: 600px;
+
+  /* Floating menu */
+  --vocab-menu-radius: 20px;
+  --vocab-menu-padding: 4px;
+}
+
+/* Responsive adjustments for larger screens */
+@media (min-width: 1200px) {
+  :root {
+    --vocab-tooltip-min-width: var(--vocab-tooltip-min-width-lg);
+    --vocab-tooltip-max-width: var(--vocab-tooltip-max-width-lg);
+    --vocab-translation-tooltip-min-width: var(--vocab-translation-tooltip-min-width-lg);
+    --vocab-translation-tooltip-max-width: var(--vocab-translation-tooltip-max-width-lg);
+  }
+}
