@@ -1,106 +1,82 @@
 # Changelog
 
-## [1.0.3] - 2026-01-18
-
-What's New:
-- Add persistent text highlighting with color picker
-- Validate api key before saving in settings
-- Improve ux with donate redesign, ai hints, and settings sync
-- Add pdf viewer support with side panel
-
-
-## [1.0.2] - 2026-01-17
-
-What's New:
-- Add chrome web store changelog and human-readable format
-
-
-## [1.0.1] - 2026-01-17
-
-- fix(ci): replace broken sed with temp file approach for changelog
-- feat: add google translate tts and xss security hardening
-- feat: add free translation api fallback and ai translation toggle
-- docs: simplify cws credentials guide with working oauth flow
-- docs: replace deprecated oob flow with service account auth
-- ci: remove coverage artifact upload
-- test: add automation testing infrastructure
-- feat: add code obfuscation for release builds
-- docs: update changelog for v1.0.1
-- chore: bump version to 1.0.1
-- chore: update feedback links for published extension
-- docs: add implementation plans and review reports
-- feat: add multi-LLM provider support and fix edge cases
-- fix: fix bugs
-- fix: add error handling for 7 critical edge cases
-- feat(vocabulary-extension): implement React Chrome extension with spaced repetition
-- chore: initial commit
-
-
 All notable changes to Vocabulary Builder Chrome Extension.
-
-Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [1.0.4] - 2026-01-19
 
-### Changed
-- **Codebase Refactoring**: Improved modularity and maintainability
-  - Extracted tooltip handlers to dedicated modules
-  - Created reusable shared components (icons, lang-dropdown)
-  - Split large components into focused modules
-  - Added custom React hooks for API key management and shortcut recording
-  - All files now ≤265 lines (excluding tests)
+### Improved
+- **Tooltip UI/UX**: Flat icon buttons for audio and copy
+- **Floating Menu**: Compact height with reduced padding
+- **AI Mode**: Speak button defaults to English TTS
+
+### Fixed
+- Button border conflicts with page CSS
+- Copy button positioning in translation tooltip
+
+---
+
+## [1.0.3] - 2026-01-18
+
+### Added
+- **Text Highlighting**: Highlight selected text on any webpage
+- **Color Picker**: Choose from 6 highlight colors (yellow, green, blue, pink, orange, purple)
+- **Persistent Highlights**: Highlights are saved and restored when you revisit the page
+- **Multi-paragraph Support**: Highlight text across multiple paragraphs
+- **Highlight Settings**: Configure default highlight color in options page
+- **Quick Remove**: Click X button on any highlight to remove it
+
+---
+
+## [1.0.2] - 2026-01-17
+
+### Added
+- **PDF Support**: Look up words in PDF files via Chrome side panel
+- **API Key Validation**: Test your API key before saving
+- **Settings Sync**: Better synchronization of settings across tabs
+
+### Improved
+- Enhanced donate section with clearer options
+- Better AI translation hints and guidance
+- Cleaner codebase for faster performance
 
 ---
 
 ## [1.0.1] - 2026-01-15
 
 ### Added
-- **Multi-LLM Provider Support**: Choose between OpenAI, Google Gemini, and xAI Grok
-- **Model Selection**: Pick specific models for each provider (gpt-4o-mini, gemini-2.0-flash, grok-2, etc.)
-- **API Key Test Button**: Verify your API key works before saving
-- **Network Offline Detection**: Clear error message when no internet connection
-- Model descriptions to help users choose the right model
+- **Multi-LLM Provider Support**: Choose between OpenAI, Google Gemini, xAI Grok, OpenRouter, Groq, or Mistral
+- **Model Selection**: Pick specific models (gpt-4o-mini, gemini-2.0-flash, grok-2, etc.)
+- **Free Translation**: MyMemory API fallback when AI is disabled
+- **Google TTS**: High-quality text-to-speech pronunciation
+- **API Key Test**: Verify your API key works before saving
+- **Network Detection**: Clear error message when offline
 
 ### Fixed
-- Multi-line translation truncation bug (regex pattern fix)
-- MacOS notifications not appearing (requireInteraction not supported)
-- Storage quota exceeded error handling
-- Flashcard data validation with safe defaults for corrupted data
-- Interval overflow protection (capped at 10 years)
-- JSON parse error handling in dictionary API
-
-### Changed
-- Replaced OpenAI-only translation with generic multi-provider service
-- Updated feedback links to Chrome Web Store and GitHub Issues
+- Multi-line translation no longer gets truncated
+- macOS notifications now work correctly
+- Better handling of storage quota limits
+- Improved flashcard data validation
 
 ### Security
-- Empty LLM response validation
+- XSS protection for safe HTML rendering
 - Network connectivity checks before API calls
 
 ---
 
 ## [1.0.0] - 2026-01-11
 
-### Added
-- **Word Lookup**: Right-click any word to look up definition
-- **Multi-language Translation**: Support for 12 languages (Vietnamese, Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Thai, Indonesian)
-- **Flashcards**: Spaced repetition learning with SM-2 algorithm
+### Features
+- **Word Lookup**: Right-click any word to look up its definition
+- **12 Languages**: Vietnamese, Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Thai, Indonesian, Arabic
+- **Flashcards**: Study with spaced repetition (SM-2 algorithm)
 - **Gamification**: Streaks, XP, levels, and progress tracking
-- **Audio Pronunciation**: Text-to-speech for all words
-- **Keyboard Shortcuts**: Optional shortcut mode for power users
-- **Study Reminders**: Configurable notification intervals
+- **Audio Pronunciation**: Listen to word pronunciation
+- **Keyboard Shortcuts**: Quick access for power users
+- **Study Reminders**: Configurable notification alerts
 - **Offline Support**: All data stored locally
-- **Settings Page**: Full-featured options page with data export
-
-### Technical
-- Chrome Extension Manifest V3
-- React 18 + TypeScript
-- Zustand state management with chrome.storage persistence
-- Vite + CRXJS build system
-- Tailwind CSS styling
+- **Export Data**: Backup your vocabulary anytime
 
 ---
 
@@ -108,14 +84,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.0.1 | 2026-01-15 | Multi-LLM providers (Gemini, Grok), bug fixes |
+| 1.0.4 | 2026-01-19 | Tooltip UI/UX improvements, flat buttons |
+| 1.0.3 | 2026-01-18 | Text highlighting with color picker |
+| 1.0.2 | 2026-01-17 | PDF support, API validation, UX improvements |
+| 1.0.1 | 2026-01-15 | Multi-LLM providers, Google TTS, security fixes |
 | 1.0.0 | 2026-01-11 | Initial release |
-
----
-
-## Upgrade Notes
-
-### From Beta to 1.0.0
-- No breaking changes
-- All vocabulary data preserved
-- Settings automatically migrated
