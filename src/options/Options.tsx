@@ -215,7 +215,13 @@ function SettingsContent() {
 
   const handleSaveProviderApiKey = async () => {
     const keyValue = currentKeyState.value
-    if (keyValue && !keyValue.startsWith('••••')) {
+    if (!keyValue || keyValue.startsWith('••••')) return
+
+    // Test connection before saving
+    setTestResult({ status: 'testing', message: 'Verifying API key...' })
+    try {
+      await testConnection(currentProvider.id, keyValue)
+      // Test passed - save the key
       await saveApiKey(keyValue, currentProvider.id)
       setProviderApiKeys(prev => ({
         ...prev,
@@ -224,7 +230,12 @@ function SettingsContent() {
           saved: true
         }
       }))
-      setTestResult({ status: 'idle' })
+      setTestResult({ status: 'success', message: 'API key verified and saved!' })
+    } catch (error) {
+      setTestResult({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Connection failed - key not saved'
+      })
     }
   }
 
@@ -238,9 +249,13 @@ function SettingsContent() {
   }
 
   const handleApiKeyChange = (value: string) => {
+    // If user types while showing masked key, clear the mask and start fresh
+    const currentValue = providerApiKeys[currentProvider.id].value
+    const cleanValue = currentValue.startsWith('••••') ? value.replace(/^•+/, '') : value
+
     setProviderApiKeys(prev => ({
       ...prev,
-      [currentProvider.id]: { value, saved: false }
+      [currentProvider.id]: { value: cleanValue, saved: false }
     }))
     setTestResult({ status: 'idle' })
   }
@@ -630,6 +645,33 @@ function SettingsContent() {
                 type={currentKeyState.saved ? 'text' : 'password'}
                 value={currentKeyState.value}
                 onChange={(e) => handleApiKeyChange(e.target.value)}
+                onFocus={() => {
+                  // Clear masked value when user focuses to type new key
+                  if (currentKeyState.value.startsWith('••••')) {
+                    setProviderApiKeys(prev => ({
+                      ...prev,
+                      [currentProvider.id]: { value: '', saved: false }
+                    }))
+                    setTestResult({ status: 'idle' })
+                  }
+                }}
+                onBlur={() => {
+                  // Restore saved key if user leaves empty
+                  if (!currentKeyState.value && !currentKeyState.saved) {
+                    chrome.storage.local.get([currentProvider.apiKeyStorageKey], (result) => {
+                      const key = result[currentProvider.apiKeyStorageKey]
+                      if (key) {
+                        setProviderApiKeys(prev => ({
+                          ...prev,
+                          [currentProvider.id]: {
+                            value: '••••••••••••••••••••' + key.slice(-4),
+                            saved: true
+                          }
+                        }))
+                      }
+                    })
+                  }
+                }}
                 placeholder={currentProvider.id === 'openai' ? 'sk-...' : 'Enter API key...'}
                 className="flex-1 max-w-md px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm font-mono"
               />
@@ -650,10 +692,10 @@ function SettingsContent() {
               ) : (
                 <button
                   onClick={handleSaveProviderApiKey}
-                  disabled={!currentKeyState.value}
+                  disabled={!currentKeyState.value || testResult.status === 'testing'}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save
+                  {testResult.status === 'testing' ? 'Verifying...' : 'Save'}
                 </button>
               )}
             </div>
