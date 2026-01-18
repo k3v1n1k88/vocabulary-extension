@@ -11,7 +11,8 @@ export default defineManifest({
     'contextMenus',
     'activeTab',
     'notifications',
-    'alarms'
+    'alarms',
+    'sidePanel'
   ],
 
   // Host permissions for API calls (required in MV3)
@@ -48,6 +49,11 @@ export default defineManifest({
   },
 
   options_page: 'src/options/index.html',
+
+  // Side panel for PDF lookup results (Chrome 114+)
+  side_panel: {
+    default_path: 'src/sidepanel/index.html'
+  },
 
   icons: {
     16: 'icons/icon-16.png',

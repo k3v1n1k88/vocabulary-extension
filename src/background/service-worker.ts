@@ -2,7 +2,69 @@ import { lookupWordWithTranslation } from '@/shared/dictionary-api'
 import { translateToTargetLanguage, translateText, isPhrase } from '@/shared/translation-service'
 import { translateWithFreeApi } from '@/shared/free-translation-api'
 import { initNotifications, scheduleStudyReminder, showDailyReminder } from '@/shared/notifications'
-import type { Message, LookupWordPayload, Word, FlashcardData } from '@/types'
+import type { Message, LookupWordPayload, Word, FlashcardData, PdfLookupResult } from '@/types'
+
+/**
+ * Detect if URL points to a PDF document.
+ * Content scripts cannot inject into Chrome's native PDF viewer,
+ * so we need alternative display (popup) for PDF pages.
+ */
+function isPdfUrl(url: string | undefined): boolean {
+  if (!url) return false
+  const lowerUrl = url.toLowerCase()
+  return (
+    lowerUrl.endsWith('.pdf') ||
+    lowerUrl.includes('.pdf?') ||    // PDF with query params
+    lowerUrl.includes('.pdf#') ||    // PDF with hash
+    lowerUrl.includes('pdfviewer') ||
+    lowerUrl.includes('/viewer.html?file=') ||  // Chrome's internal viewer
+    lowerUrl.includes('/pdfjs/') ||
+    (lowerUrl.startsWith('chrome-extension://') && lowerUrl.includes('pdf'))
+  )
+}
+
+/**
+ * Perform lookup and store result for side panel to display.
+ * Called after side panel is already open.
+ */
+async function performPdfLookup(text: string) {
+  try {
+    // Store loading state first
+    await chrome.storage.session.set({
+      pdfLookupResult: { type: 'loading', timestamp: Date.now(), text }
+    })
+
+    const isPhraseText = isPhrase(text)
+    let result: PdfLookupResult
+
+    if (isPhraseText) {
+      const translation = await translateToTargetLanguage(text)
+      result = { type: 'translation', timestamp: Date.now(), data: translation }
+    } else {
+      const wordData = await lookupWordWithTranslation(text)
+      if (wordData) {
+        result = { type: 'word', timestamp: Date.now(), data: wordData }
+      } else {
+        // Fallback to translation for unknown words
+        const translation = await translateToTargetLanguage(text)
+        result = { type: 'translation', timestamp: Date.now(), data: translation }
+      }
+    }
+
+    // Store result for side panel to display
+    await chrome.storage.session.set({ pdfLookupResult: result })
+  } catch (error) {
+    console.error('[VocabExt] PDF lookup failed:', error)
+    // Store error state
+    await chrome.storage.session.set({
+      pdfLookupResult: {
+        type: 'error',
+        timestamp: Date.now(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    })
+  }
+}
 
 // Create context menu on install
 chrome.runtime.onInstalled.addListener(() => {
@@ -70,9 +132,44 @@ async function lookupOrTranslate(text: string, tabId: number) {
 }
 
 // Handle context menu clicks
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+// NOTE: For PDF pages, we must call sidePanel.open() SYNCHRONOUSLY - no awaits before it!
+chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'vocabulary-lookup' && info.selectionText && tab?.id) {
-    await lookupOrTranslate(info.selectionText.trim(), tab.id)
+    const text = info.selectionText.trim()
+    const isPdf = isPdfUrl(tab.url)
+
+    console.log('[VocabExt] Context menu clicked:', {
+      text: text.slice(0, 20),
+      url: tab.url?.slice(0, 50),
+      isPdf,
+      tabId: tab.id,
+      windowId: tab.windowId
+    })
+
+    // Check if page is a PDF - content script can't inject into PDF viewer
+    // Use side panel for PDF pages (better UX - stays visible while reading)
+    if (isPdf && tab.windowId) {
+      // CRITICAL: Call sidePanel.open() IMMEDIATELY - no awaits before this!
+      // Any async operation before open() breaks the user gesture chain
+      chrome.sidePanel.open({ windowId: tab.windowId })
+        .then(() => {
+          console.log('[VocabExt] Side panel opened, starting lookup...')
+          // Now perform lookup (side panel will show loading, then result)
+          performPdfLookup(text)
+        })
+        .catch((error) => {
+          console.error('[VocabExt] Failed to open side panel:', error)
+          // Fallback to notification
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon-128.png',
+            title: 'Vocabulary Lookup',
+            message: `Could not open side panel. Try clicking the extension icon.`
+          })
+        })
+    } else {
+      lookupOrTranslate(text, tab.id)
+    }
   }
 })
 

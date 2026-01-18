@@ -178,3 +178,10 @@ export interface AppState {
   isLoading: boolean
   error?: string
 }
+
+// PDF lookup result for side panel display (when content script can't inject into PDF viewer)
+export type PdfLookupResult =
+  | { type: 'word'; timestamp: number; data: Word }
+  | { type: 'translation'; timestamp: number; data: TranslationResult }
+  | { type: 'loading'; timestamp: number; text: string }
+  | { type: 'error'; timestamp: number; error: string }
