@@ -13,7 +13,7 @@ import {
   createAiUpsellHtml,
   createLangDropdownHtml,
   createAudioButtonHtml,
-  createCopyButtonHtml,
+  createCopyIconButtonHtml,
   createSaveButtonHtml,
   createAiBadgeHtml
 } from './tooltip-shared-elements'
@@ -116,6 +116,7 @@ export function createTranslationTooltipHTML(translation: TranslationResult, cac
       <div class="vocab-header">
         <div class="vocab-word-row">
           <span class="vocab-word">${escapeHtml(translation.originalText)}</span>
+          ${createAudioButtonHtml(translation.originalText, 'text')}
           ${createTypeBadgeHtml(typeLabel)}
           ${translationBadgeHtml}
         </div>
@@ -128,17 +129,15 @@ export function createTranslationTooltipHTML(translation: TranslationResult, cac
 
       <div class="vocab-translation-result">
         <span class="vocab-label">Translation:</span>
-        <div class="vocab-translated-text">${escapeHtml(translation.translatedText).replace(/\n/g, '<br>')}</div>
+        <div class="vocab-translated-text-row">
+          <div class="vocab-translated-text">
+            ${escapeHtml(translation.translatedText).replace(/\n/g, '<br>')}
+            ${createCopyIconButtonHtml()}
+          </div>
+        </div>
       </div>
 
       ${aiUpsellHtml}
-
-      <div class="vocab-actions">
-        ${createCopyButtonHtml()}
-        <button class="vocab-audio-btn" data-text="${escapeAttr(translation.originalText)}" title="Play pronunciation">
-          ${TOOLTIP_ICONS.speakerSmall}
-        </button>
-      </div>
     </div>
   `
 }

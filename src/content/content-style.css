@@ -97,7 +97,7 @@
 /* Horizontal menu layout */
 #vocab-floating-menu.vocab-menu-horizontal {
   border-radius: var(--vocab-menu-radius);
-  padding: 4px;
+  padding: 3px;
 }
 
 .vocab-menu-row {
@@ -111,17 +111,17 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   cursor: pointer;
   color: var(--vocab-gray-700);
   transition: all 0.15s;
   white-space: nowrap;
 }
 
-/* Horizontal menu items - icon only, compact */
+/* Horizontal menu items - compact */
 .vocab-menu-horizontal .vocab-menu-item {
-  padding: 6px 10px;
-  border-radius: 16px;
+  padding: 5px 8px;
+  border-radius: 14px;
 }
 
 .vocab-menu-item:hover {
@@ -310,23 +310,38 @@
   color: var(--vocab-gray-800);
 }
 
+/* Audio button - flat/transparent style */
 .vocab-audio-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: none;
-  background: var(--vocab-gray-100);
-  border-radius: 50%;
+  border: none !important;
+  border-width: 0 !important;
+  outline: none;
+  background: transparent;
+  border-radius: var(--vocab-radius-sm);
   cursor: pointer;
-  color: var(--vocab-gray-500);
-  transition: all 0.2s;
+  color: var(--vocab-gray-400);
+  transition: all 0.15s;
+  padding: 10px;
+  margin: 0;
+}
+
+.vocab-audio-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  display: block;
 }
 
 .vocab-audio-btn:hover {
-  background: var(--vocab-primary-500);
-  color: white;
+  background: var(--vocab-gray-100);
+  color: var(--vocab-primary-500);
 }
 
 .vocab-pronunciation {
@@ -784,9 +799,18 @@
   margin-bottom: 12px;
 }
 
+/* Translation text row with inline actions */
+.vocab-translated-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .vocab-translated-text {
+  flex: 1;
+  position: relative;
   background: var(--vocab-translation-result-bg);
-  padding: 10px 12px;
+  padding: 10px 40px 10px 12px;
   border-radius: var(--vocab-radius-md);
   color: var(--vocab-translation-result-text);
   font-size: 14px;
@@ -794,6 +818,56 @@
   border-left: 3px solid var(--vocab-translation-result-border);
 }
 
+/* Copy button inside translated text - positioned at top right */
+.vocab-translated-text .vocab-copy-icon-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* Inline action buttons (copy, audio) in translation section */
+.vocab-inline-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Copy icon button (icon only, flat/transparent) */
+.vocab-copy-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: var(--vocab-gray-400);
+  border: none !important;
+  border-width: 0 !important;
+  outline: none;
+  border-radius: var(--vocab-radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  margin: 0;
+}
+
+.vocab-copy-icon-btn:hover {
+  background: var(--vocab-gray-100);
+  color: var(--vocab-primary-500);
+}
+
+.vocab-copy-icon-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  display: block;
+}
+
+/* Legacy copy button (full button with text) */
 .vocab-copy-btn {
   display: flex;
   align-items: center;
@@ -814,16 +888,17 @@
   background: var(--vocab-gray-200);
 }
 
-.vocab-translation .vocab-actions {
-  display: flex;
-  gap: 8px;
+/* Inline action buttons - flat style */
+.vocab-inline-actions .vocab-audio-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: var(--vocab-gray-400);
 }
 
-.vocab-translation .vocab-audio-btn {
-  padding: 8px 12px;
-  width: auto;
-  border-radius: 8px;
-  gap: 6px;
+.vocab-inline-actions .vocab-audio-btn:hover {
+  background: var(--vocab-gray-100);
+  color: var(--vocab-primary-500);
 }
 
 /* Text Highlight Styles */

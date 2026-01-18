@@ -112,12 +112,21 @@ export function createAudioButtonHtml(text: string, attrName = 'word'): string {
 }
 
 /**
- * Create copy button HTML.
+ * Create copy button HTML (full button with text).
  */
 export function createCopyButtonHtml(): string {
   return `<button class="vocab-copy-btn" title="Copy translation">
     ${TOOLTIP_ICONS.copy}
     Copy
+  </button>`
+}
+
+/**
+ * Create copy icon button HTML (icon only, for inline use).
+ */
+export function createCopyIconButtonHtml(): string {
+  return `<button class="vocab-copy-icon-btn" title="Copy translation">
+    ${TOOLTIP_ICONS.copy}
   </button>`
 }
 

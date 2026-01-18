@@ -99,17 +99,21 @@ export function setupTranslationTooltipEvents(translation: TranslationResult): v
     setupSourceLanguageDropdown(tooltip, getTooltip, setupTranslationTooltipEvents)
   }
 
-  // Copy button
-  const copyBtn = tooltip.querySelector('.vocab-copy-btn')
+  // Copy button (supports both full and icon-only variants)
+  const copyBtn = tooltip.querySelector('.vocab-copy-btn, .vocab-copy-icon-btn')
+  const isIconOnly = copyBtn?.classList.contains('vocab-copy-icon-btn')
+  const checkIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+  const copyIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`
+
   copyBtn?.addEventListener('click', async (e) => {
     e.stopPropagation()
     try {
       await navigator.clipboard.writeText(translation.translatedText)
       if (copyBtn) {
-        copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`
+        copyBtn.innerHTML = isIconOnly ? checkIcon : `${checkIcon} Copied!`
         setTimeout(() => {
           if (copyBtn) {
-            copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`
+            copyBtn.innerHTML = isIconOnly ? copyIcon : `${copyIcon} Copy`
           }
         }, 2000)
       }

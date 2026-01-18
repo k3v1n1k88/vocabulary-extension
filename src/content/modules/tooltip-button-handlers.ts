@@ -107,7 +107,8 @@ export function setupCopyButtonHandler(
   tooltip: HTMLDivElement,
   textToCopy: string
 ): void {
-  const copyBtn = tooltip.querySelector('.vocab-copy-btn')
+  // Support both full copy button and icon-only copy button
+  const copyBtn = tooltip.querySelector('.vocab-copy-btn, .vocab-copy-icon-btn')
   copyBtn?.addEventListener('click', async (e) => {
     e.stopPropagation()
     if (copyBtn) {

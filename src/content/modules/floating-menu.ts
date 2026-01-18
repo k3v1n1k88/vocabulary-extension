@@ -132,7 +132,7 @@ export function showFloatingButton(selection: Selection): void {
   `
 
   // Setup event handlers
-  setupMenuEventHandlers(floatingButton, selectedText, cachedSourceLangCode)
+  setupMenuEventHandlers(floatingButton, selectedText, cachedSourceLangCode, cachedUseLLMTranslation)
 
   document.body.appendChild(floatingButton)
 }
@@ -224,7 +224,8 @@ function handleColorOptionClick(clickedEl: HTMLElement, menu: HTMLDivElement): b
 function setupMenuEventHandlers(
   menu: HTMLDivElement,
   selectedText: string,
-  sourceLangCode: string
+  sourceLangCode: string,
+  useLLMTranslation: boolean
 ): void {
   let activeDropdown: 'source' | 'target' | 'color' | null = null
 
@@ -278,7 +279,9 @@ function setupMenuEventHandlers(
     if (action === 'lookup') {
       handleLookupAction(selectedText)
     } else if (action === 'speak') {
-      handleSpeakAction(selectedText, sourceLangCode)
+      // In AI mode, default to English for TTS (AI auto-detects source)
+      const ttsLang = useLLMTranslation ? 'en' : sourceLangCode
+      handleSpeakAction(selectedText, ttsLang)
     } else if (action === 'highlight') {
       handleHighlightAction()
     }
