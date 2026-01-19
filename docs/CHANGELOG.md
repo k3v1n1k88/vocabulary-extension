@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.4] - 2026-01-19
+
+Bug Fixes:
+- Improve tooltip buttons and floating menu styling
+
+
 All notable changes to Vocabulary Builder Chrome Extension.
 
 ---
