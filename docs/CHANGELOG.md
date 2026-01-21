@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.5] - 2026-01-21
+
+Bug Fixes:
+- Disable obfuscation for release builds
+
+
 ## [1.0.4] - 2026-01-19
 
 Bug Fixes:
