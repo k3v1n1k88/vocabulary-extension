@@ -50,8 +50,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     crx({ manifest }),
     copyContentCss(),
-    // Obfuscate in production and release modes
-    (mode === 'production' || mode === 'release') && obfuscatorPlugin({
+    // Obfuscate only in production mode (not release - Chrome Web Store rejects obfuscated code)
+    mode === 'production' && obfuscatorPlugin({
       options: {
         // MV3 compatible settings (no eval)
         compact: true,
