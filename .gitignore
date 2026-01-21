@@ -57,3 +57,7 @@ coverage/
 
 # Secret
 key.json
+
+# Others
+.claude/
+plans/
