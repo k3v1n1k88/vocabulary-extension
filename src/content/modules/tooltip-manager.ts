@@ -6,6 +6,7 @@
 
 import type { Word, TranslationResult } from '@/types'
 import { createTooltipHTML, createTranslationTooltipHTML, createLoadingHTML, createErrorHTML } from './tooltip-templates'
+import { createCloseButtonHtml } from './tooltip-shared-elements'
 import { getTargetLanguage, isLLMTranslationEnabled } from './settings-manager'
 import { clearSavedTooltipPosition } from './floating-menu'
 import {
@@ -35,7 +36,9 @@ export function getTooltip(): HTMLDivElement | null {
 function createTooltipElement(html: string, position: TooltipPosition): HTMLDivElement {
   const el = document.createElement('div')
   el.id = 'vocabulary-tooltip'
-  el.innerHTML = html
+  // Close button lives on the chrome layer (sibling of .vocab-tooltip-content)
+  // so it stays visible while content scrolls inside the inner overflow region.
+  el.innerHTML = createCloseButtonHtml() + html
   el.style.cssText = `
     position: absolute;
     left: ${position.left}px;
@@ -43,6 +46,21 @@ function createTooltipElement(html: string, position: TooltipPosition): HTMLDivE
     z-index: 999999;
   `
   return el
+}
+
+/**
+ * Replace the `.vocab-tooltip-content` body inside the live tooltip while
+ * preserving the close button (which is its sibling, not a descendant).
+ */
+function replaceTooltipBody(html: string): void {
+  if (!tooltip) return
+  const contentEl = tooltip.querySelector('.vocab-tooltip-content')
+  if (contentEl) {
+    contentEl.outerHTML = html
+  } else {
+    // Fallback if structure was unexpectedly broken
+    tooltip.innerHTML = createCloseButtonHtml() + html
+  }
 }
 
 function mountTooltip(el: HTMLDivElement): void {
@@ -74,7 +92,7 @@ export function updateTooltipWithWord(word: Word): void {
     showTooltip(word)
     return
   }
-  tooltip.innerHTML = createTooltipHTML(word)
+  replaceTooltipBody(createTooltipHTML(word))
   setupWordTooltipEvents(word)
   measureAndAdjustVertical(tooltip, currentSelectionRect)
 }
@@ -84,7 +102,7 @@ export function updateTooltipWithTranslation(translation: TranslationResult): vo
     showTranslationTooltip(translation)
     return
   }
-  tooltip.innerHTML = createTranslationTooltipHTML(translation, getTargetLanguage())
+  replaceTooltipBody(createTranslationTooltipHTML(translation, getTargetLanguage()))
   setupTranslationTooltipEvents(translation)
   measureAndAdjustVertical(tooltip, currentSelectionRect)
 }
@@ -107,7 +125,7 @@ export function showErrorTooltip(message: string): void {
   if (tooltip) {
     const existingLeft = tooltip.style.left
     const existingTop = tooltip.style.top
-    tooltip.innerHTML = createErrorHTML(message)
+    replaceTooltipBody(createErrorHTML(message))
     tooltip.style.left = existingLeft
     tooltip.style.top = existingTop
     setupErrorTooltipEvents(message)

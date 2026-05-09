@@ -62,7 +62,12 @@ async function retranslateWithFreeApi(
 
     const currentTooltip = getTooltip()
     if (result && currentTooltip) {
-      currentTooltip.innerHTML = createTranslationTooltipHTML(result, getTargetLanguage())
+      // Replace only the inner body; the close button (sibling of
+      // `.vocab-tooltip-content`) lives on the chrome layer and must persist.
+      const contentEl = currentTooltip.querySelector('.vocab-tooltip-content')
+      if (contentEl) {
+        contentEl.outerHTML = createTranslationTooltipHTML(result, getTargetLanguage())
+      }
       setupTranslationEvents(result)
     }
   } catch (error) {

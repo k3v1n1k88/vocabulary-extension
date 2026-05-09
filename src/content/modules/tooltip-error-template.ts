@@ -7,8 +7,7 @@ import { escapeHtml } from '../utils/html-escape'
 import {
   TOOLTIP_ICONS,
   createSettingsButtonHtml,
-  createErrorCodeBadgeHtml,
-  createCloseButtonHtml
+  createErrorCodeBadgeHtml
 } from './tooltip-shared-elements'
 
 /**
@@ -71,7 +70,6 @@ export function createErrorHTML(message: string): string {
 
   return `
     <div class="vocab-tooltip-content vocab-error-card">
-      ${createCloseButtonHtml()}
       <div class="vocab-error-header">
         <div class="vocab-error-icon">
           ${TOOLTIP_ICONS.error}

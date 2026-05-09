@@ -98,6 +98,30 @@ describe('setupEscapeKeyHandler', () => {
   })
 })
 
+describe('chrome-layer close button (Option A architecture)', () => {
+  it('remains hittable after `.vocab-tooltip-content.outerHTML` replace', () => {
+    // Simulate the new architecture: X is a sibling of .vocab-tooltip-content,
+    // not a descendant. Content updates replace .vocab-tooltip-content.outerHTML
+    // and the X must persist.
+    mockTooltip.innerHTML = `
+      <button class="vocab-close-btn" aria-label="Close"></button>
+      <div class="vocab-tooltip-content">old content</div>
+    `
+    const cleanup = setupCloseButtonHandler()
+
+    // Simulate content swap (loading -> loaded path)
+    const contentEl = mockTooltip.querySelector('.vocab-tooltip-content') as HTMLElement
+    contentEl.outerHTML = `<div class="vocab-tooltip-content">new content</div>`
+
+    // X must still be present and still close the tooltip
+    const stillThere = mockTooltip.querySelector('.vocab-close-btn') as HTMLButtonElement
+    expect(stillThere).not.toBeNull()
+    stillThere.click()
+    expect(removeSpy).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+})
+
 describe('outside-click regression', () => {
   it('does not export setupOutsideClickHandler anymore', () => {
     expect((handlersModule as Record<string, unknown>).setupOutsideClickHandler).toBeUndefined()
