@@ -54,11 +54,29 @@ const chromeMock = {
     sendMessage: vi.fn(),
     onMessage: {
       addListener: vi.fn()
-    }
+    },
+    getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`)
   },
   tabs: {
     query: vi.fn(),
     sendMessage: vi.fn()
+  },
+  notifications: {
+    create: vi.fn((id: string) => Promise.resolve(id)),
+    clear: vi.fn(() => Promise.resolve(true)),
+    onClicked: { addListener: vi.fn() },
+    onButtonClicked: { addListener: vi.fn() }
+  },
+  alarms: {
+    create: vi.fn(() => Promise.resolve()),
+    clear: vi.fn(() => Promise.resolve(true)),
+    onAlarm: { addListener: vi.fn() }
+  },
+  permissions: {
+    contains: vi.fn(() => Promise.resolve(true))
+  },
+  action: {
+    openPopup: vi.fn(() => Promise.resolve())
   }
 }
 

@@ -7,16 +7,26 @@ export interface WordPreview {
   word: string
   definition: string
   translation?: string
+  pronunciation?: string
+  partOfSpeech?: string
 }
 
 export interface NotificationData {
   settings: {
     notificationsEnabled: boolean
     reminderInterval?: number
+    studyReminderSnoozeUntil?: number
   } | null
   dueCount: number
   streak: number
-  words: Array<{ id: string; word: string; definition: string; vietnameseTranslation?: string }>
+  words: Array<{
+    id: string
+    word: string
+    definition: string
+    vietnameseTranslation?: string
+    pronunciation?: string
+    partOfSpeech?: string
+  }>
   dueCards: Array<[string, { nextReview: number }]>
 }
 
@@ -98,7 +108,9 @@ export function getRandomWordPreview(
       return {
         word: wordData.word,
         definition: wordData.definition,
-        translation: wordData.vietnameseTranslation
+        translation: wordData.vietnameseTranslation,
+        pronunciation: wordData.pronunciation,
+        partOfSpeech: wordData.partOfSpeech
       }
     }
   }
@@ -108,7 +120,9 @@ export function getRandomWordPreview(
   return {
     word: wordData.word,
     definition: wordData.definition,
-    translation: wordData.vietnameseTranslation
+    translation: wordData.vietnameseTranslation,
+    pronunciation: wordData.pronunciation,
+    partOfSpeech: wordData.partOfSpeech
   }
 }
 
@@ -143,4 +157,52 @@ export async function areNotificationsEnabled(): Promise<boolean> {
   const result = await chrome.storage.local.get(['settings-storage'])
   const settings = parseSettings(result)
   return settings?.notificationsEnabled ?? false
+}
+
+// Next local midnight (00:00:00.000); used for "Skip today" snooze. Native Date handles DST drift.
+export function getNextLocalMidnight(now: number = Date.now()): number {
+  const d = new Date(now)
+  d.setHours(24, 0, 0, 0)
+  return d.getTime()
+}
+
+// Read study-reminder snooze timestamp; undefined if missing, malformed, or non-finite.
+export async function getStudyReminderSnoozeUntil(): Promise<number | undefined> {
+  try {
+    const result = await chrome.storage.local.get(['settings-storage'])
+    const ts = parseSettings(result)?.studyReminderSnoozeUntil
+    return typeof ts === 'number' && Number.isFinite(ts) ? ts : undefined
+  } catch (e) {
+    console.warn('[VocabExt] Failed to read snooze timestamp:', e)
+    return undefined
+  }
+}
+
+// Write study-reminder snooze timestamp; pass undefined to clear. RMW preserves other settings.
+// NOTE: RMW races Zustand persist on `settings-storage` (`store.ts:239`). Concurrency window
+// is tiny (snooze click ≤ 1/day vs settings edits while Options open). Best-effort by design;
+// last-writer-wins. Per-write strict locking is out of scope for v1.
+export async function setStudyReminderSnoozeUntil(ts: number | undefined): Promise<void> {
+  try {
+    if (ts !== undefined && (typeof ts !== 'number' || !Number.isFinite(ts))) {
+      console.warn('[VocabExt] Refusing to write non-finite snooze timestamp:', ts)
+      return
+    }
+    const result = await chrome.storage.local.get(['settings-storage'])
+    const raw = result['settings-storage']
+    let parsed: { state?: { settings?: Record<string, unknown> } } = {}
+    if (typeof raw === 'string') {
+      try { parsed = JSON.parse(raw) } catch { parsed = {} }
+    }
+    if (!parsed.state) parsed.state = {}
+    if (!parsed.state.settings) parsed.state.settings = {}
+    if (ts === undefined) {
+      delete parsed.state.settings.studyReminderSnoozeUntil
+    } else {
+      parsed.state.settings.studyReminderSnoozeUntil = ts
+    }
+    await chrome.storage.local.set({ 'settings-storage': JSON.stringify(parsed) })
+  } catch (e) {
+    console.warn('[VocabExt] Failed to write snooze timestamp:', e)
+  }
 }
