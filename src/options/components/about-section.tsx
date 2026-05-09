@@ -32,7 +32,7 @@ export function AboutSection() {
             Rate Extension
           </a>
           <a
-            href="https://github.com/k3v1n1k88/vocabulary-extension-issues/issues"
+            href="https://github.com/k3v1n1k88/vocabulary-extension/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors shadow-sm"
