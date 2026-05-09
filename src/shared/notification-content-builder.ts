@@ -23,19 +23,15 @@ function normalizeIpa(raw: string): string {
   return trimmed ? `/${trimmed}/` : ''
 }
 
+// Card-style title: word only. Chrome handles overflow; defensive cap for sanity.
 function buildTitle(randomWord?: WordPreview): string {
   if (!randomWord?.word) return FALLBACK_TITLE
-  const base = `📖 ${randomWord.word}`
-  if (randomWord.pronunciation) {
-    const ipa = normalizeIpa(randomWord.pronunciation)
-    if (ipa) {
-      const withIpa = `${base} ${ipa}`
-      if (withIpa.length <= TITLE_MAX_LEN) return withIpa
-    }
-  }
-  return base
+  return `📖 ${randomWord.word}`.slice(0, TITLE_MAX_LEN)
 }
 
+// Card-style message: IPA on line 1, "PoS. definition" on line 2 (joined by \n).
+// Either part is optional; falls back to legacy due-count / streak / generic messages
+// when no word is provided.
 function buildMessage(
   randomWord: WordPreview | undefined,
   dueCount: number,
@@ -43,7 +39,9 @@ function buildMessage(
 ): string {
   if (randomWord?.word) {
     const def = randomWord.definition.slice(0, DEFINITION_MAX_LEN)
-    return randomWord.partOfSpeech ? `${randomWord.partOfSpeech}. ${def}` : def
+    const defLine = randomWord.partOfSpeech ? `${randomWord.partOfSpeech}. ${def}` : def
+    const ipaLine = randomWord.pronunciation ? normalizeIpa(randomWord.pronunciation) : ''
+    return ipaLine ? `${ipaLine}\n${defLine}` : defLine
   }
   if (dueCount > 0) return `You have ${dueCount} cards waiting for review!`
   if (streak > 0) return `Keep your ${streak}-day streak going!`
