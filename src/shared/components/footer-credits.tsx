@@ -30,7 +30,7 @@ export function FooterCredits() {
             Rate
           </a>
           <a
-            href="https://github.com/k3v1n1k88/vocabulary-extension-issues/issues"
+            href="https://github.com/k3v1n1k88/vocabulary-extension/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
