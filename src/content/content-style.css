@@ -261,8 +261,49 @@
   width: max-content;
   min-width: 300px;
   max-width: min(450px, 90vw);
+  max-height: min(60vh, 500px);
+  overflow-y: auto;
   border: 1px solid var(--vocab-gray-200);
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Close button anchors to #vocabulary-tooltip (the outer chrome layer),
+   so it stays visible while .vocab-tooltip-content scrolls internally. */
+.vocab-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--vocab-radius-sm);
+  color: var(--vocab-gray-500);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+  z-index: 2;
+}
+
+.vocab-close-btn:hover {
+  background: var(--vocab-gray-100);
+  color: var(--vocab-gray-800);
+}
+
+.vocab-close-btn:focus-visible {
+  outline: 2px solid var(--vocab-primary-500);
+  outline-offset: 2px;
+}
+
+.vocab-close-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
 }
 
 /* Responsive adjustments for larger screens */

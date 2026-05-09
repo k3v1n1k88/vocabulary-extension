@@ -1,3 +1,4 @@
+/* global Element */
 /**
  * Tooltip Event Handlers Module
  * Sets up event listeners for different tooltip types.
@@ -45,17 +46,38 @@ export function initEventHandlers(
 }
 
 /**
- * Setup outside click handler to close tooltip.
+ * Setup delegated click handler for the close (X) button.
+ * Listener is attached to the tooltip ROOT (which survives `innerHTML`
+ * replacements done by content updates and dropdown re-renders), so the X
+ * button keeps working across loading → loaded → error → re-translate flows.
+ * Returns a cleanup function that removes the listener.
  */
-export function setupOutsideClickHandler(): (() => void) {
-  const handler = (e: MouseEvent) => {
-    const tooltip = getTooltip()
-    if (tooltip && !tooltip.contains(e.target as Node)) {
+export function setupCloseButtonHandler(): (() => void) {
+  const tooltip = getTooltip()
+  if (!tooltip) return () => {}
+  const handler = (e: Event) => {
+    const target = e.target as Element | null
+    if (target && target.closest('.vocab-close-btn')) {
+      e.stopPropagation()
       removeTooltip()
     }
   }
-  document.addEventListener('click', handler)
-  return () => document.removeEventListener('click', handler)
+  tooltip.addEventListener('click', handler)
+  return () => tooltip.removeEventListener('click', handler)
+}
+
+/**
+ * Setup document-level Escape keydown handler to close tooltip.
+ * Does not stopPropagation — host page Escape handlers still fire.
+ */
+export function setupEscapeKeyHandler(): (() => void) {
+  const handler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      removeTooltip()
+    }
+  }
+  document.addEventListener('keydown', handler)
+  return () => document.removeEventListener('keydown', handler)
 }
 
 /**
