@@ -1,114 +1,92 @@
 /**
  * Translation Settings Module
  * Handles reading/writing translation settings from chrome.storage.
+ *
+ * Settings + API keys live in chrome.storage.sync (issue #5: cross-device
+ * config sync). Reads fall back to chrome.storage.local for legacy v1.0.5
+ * data; writes always go to sync.
  */
 
 import type { LLMProvider } from '../types'
 import { SUPPORTED_LANGUAGES } from '../types'
 import { getProviderConfig } from './llm-provider-config'
+import { getSettings } from './settings-storage-access'
 
-/**
- * Get API key for specified provider from chrome.storage.
- */
-export async function getApiKey(provider: LLMProvider): Promise<string | null> {
-  const config = getProviderConfig(provider)
-  return new Promise((resolve) => {
-    chrome.storage.local.get([config.apiKeyStorageKey], (result) => {
-      resolve(result[config.apiKeyStorageKey] || null)
-    })
-  })
+interface TranslationSettings {
+  llmProvider?: LLMProvider
+  targetLanguage?: string
+  sourceLanguage?: string
+  useLLMTranslation?: boolean
 }
 
 /**
- * Save API key for specified provider.
+ * Get API key for specified provider from chrome.storage.
+ * Sync first; legacy local fallback for users upgrading from v1.0.5.
+ */
+export async function getApiKey(provider: LLMProvider): Promise<string | null> {
+  const { apiKeyStorageKey } = getProviderConfig(provider)
+  const sync = await chrome.storage.sync.get([apiKeyStorageKey])
+  if (sync[apiKeyStorageKey]) return sync[apiKeyStorageKey] as string
+  const local = await chrome.storage.local.get([apiKeyStorageKey])
+  const legacy = local[apiKeyStorageKey] as string | undefined
+  if (legacy) {
+    // Best-effort migrate; ignore quota errors.
+    try {
+      await chrome.storage.sync.set({ [apiKeyStorageKey]: legacy })
+    } catch {
+      // ignore
+    }
+    return legacy
+  }
+  return null
+}
+
+/**
+ * Save API key for specified provider (writes to sync storage).
  */
 export async function saveApiKey(apiKey: string, provider: LLMProvider = 'openai'): Promise<void> {
-  const config = getProviderConfig(provider)
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ [config.apiKeyStorageKey]: apiKey }, resolve)
-  })
+  const { apiKeyStorageKey } = getProviderConfig(provider)
+  await chrome.storage.sync.set({ [apiKeyStorageKey]: apiKey })
 }
 
 /**
  * Get selected LLM provider from settings.
  */
 export async function getSelectedProvider(): Promise<LLMProvider> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['settings-storage'], (result) => {
-      try {
-        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
-        const provider = parsed?.state?.settings?.llmProvider || 'openai'
-        resolve(provider as LLMProvider)
-      } catch {
-        resolve('openai')
-      }
-    })
-  })
+  const settings = await getSettings<TranslationSettings>()
+  return settings?.llmProvider || 'openai'
 }
 
 /**
  * Get target language name from settings (e.g., 'Vietnamese').
  */
 export async function getTargetLanguage(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['settings-storage'], (result) => {
-      try {
-        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
-        const langCode = parsed?.state?.settings?.targetLanguage || 'vi'
-        const lang = SUPPORTED_LANGUAGES.find(l => l.code === langCode)
-        resolve(lang ? lang.name : 'Vietnamese')
-      } catch {
-        resolve('Vietnamese')
-      }
-    })
-  })
+  const settings = await getSettings<TranslationSettings>()
+  const langCode = settings?.targetLanguage || 'vi'
+  const lang = SUPPORTED_LANGUAGES.find(l => l.code === langCode)
+  return lang ? lang.name : 'Vietnamese'
 }
 
 /**
  * Get target language code from settings (e.g., 'vi', 'en').
  */
 export async function getTargetLanguageCode(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['settings-storage'], (result) => {
-      try {
-        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
-        resolve(parsed?.state?.settings?.targetLanguage || 'vi')
-      } catch {
-        resolve('vi')
-      }
-    })
-  })
+  const settings = await getSettings<TranslationSettings>()
+  return settings?.targetLanguage || 'vi'
 }
 
 /**
  * Get source language code from settings (for free translation).
  */
 export async function getSourceLanguageCode(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['settings-storage'], (result) => {
-      try {
-        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
-        resolve(parsed?.state?.settings?.sourceLanguage || 'en')
-      } catch {
-        resolve('en')
-      }
-    })
-  })
+  const settings = await getSettings<TranslationSettings>()
+  return settings?.sourceLanguage || 'en'
 }
 
 /**
  * Check if LLM translation is enabled in settings.
  */
 export async function isLLMTranslationEnabled(): Promise<boolean> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['settings-storage'], (result) => {
-      try {
-        const parsed = result['settings-storage'] ? JSON.parse(result['settings-storage']) : null
-        // Default to false - use free API by default
-        resolve(parsed?.state?.settings?.useLLMTranslation ?? false)
-      } catch {
-        resolve(false)
-      }
-    })
-  })
+  const settings = await getSettings<TranslationSettings>()
+  return settings?.useLLMTranslation ?? false
 }

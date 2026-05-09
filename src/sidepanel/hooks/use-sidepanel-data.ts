@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import type { PdfLookupResult, UserSettings } from '@/types'
+import { SETTINGS_KEY, getSettings } from '@/shared/settings-storage-access'
 
 // Only word/translation results (not loading/error) for history
 export type HistoryItem = Extract<PdfLookupResult, { type: 'word' } | { type: 'translation' }>
@@ -24,20 +25,6 @@ interface SidePanelDataActions {
   selectFromHistory: (item: PdfLookupResult) => void
   setSourceLang: (lang: string) => void
   setTargetLang: (lang: string) => void
-}
-
-/**
- * Parse settings from storage result.
- */
-function parseSettings(settingsData: Record<string, string>): UserSettings | null {
-  if (!settingsData['settings-storage']) return null
-  try {
-    const parsed = JSON.parse(settingsData['settings-storage'])
-    return parsed?.state?.settings as UserSettings
-  } catch {
-    console.warn('[VocabExt] Failed to parse settings')
-    return null
-  }
 }
 
 /**
@@ -62,9 +49,8 @@ export function useSidePanelData(): SidePanelDataState & SidePanelDataActions {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load user settings
-        const settingsData = await chrome.storage.local.get('settings-storage')
-        const userSettings = parseSettings(settingsData)
+        // Load user settings (sync-first; legacy local fallback handled in helper).
+        const userSettings = await getSettings<UserSettings>()
         if (userSettings) {
           setSettings(userSettings)
           setSourceLang(userSettings.sourceLanguage || 'en')
@@ -96,11 +82,15 @@ export function useSidePanelData(): SidePanelDataState & SidePanelDataActions {
       }
     }
 
-    // Listen for settings changes (local storage)
-    const handleLocalChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes['settings-storage']?.newValue) {
+    // Listen for settings changes — settings now live in sync storage.
+    const handleSettingsChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      if (areaName !== 'sync') return
+      if (changes[SETTINGS_KEY]?.newValue) {
         try {
-          const parsed = JSON.parse(changes['settings-storage'].newValue)
+          const parsed = JSON.parse(changes[SETTINGS_KEY].newValue)
           const userSettings = parsed?.state?.settings as UserSettings
           if (userSettings) {
             setSettings(userSettings)
@@ -114,10 +104,10 @@ export function useSidePanelData(): SidePanelDataState & SidePanelDataActions {
     }
 
     chrome.storage.session?.onChanged.addListener(handleSessionChange)
-    chrome.storage.local?.onChanged.addListener(handleLocalChange)
+    chrome.storage.onChanged.addListener(handleSettingsChange)
     return () => {
       chrome.storage.session?.onChanged.removeListener(handleSessionChange)
-      chrome.storage.local?.onChanged.removeListener(handleLocalChange)
+      chrome.storage.onChanged.removeListener(handleSettingsChange)
     }
   }, [])
 

@@ -13,13 +13,14 @@ A Chrome extension for learning vocabulary with flashcards, spaced repetition (S
 - **Audio Pronunciation**: Google TTS for word pronunciation
 - **Keyboard Shortcuts**: Optional shortcut mode for power users
 - **Study Reminders**: Configurable notification intervals
-- **Offline Support**: All data stored locally in chrome.storage
+- **Cross-Device Settings Sync**: Settings + API keys travel with your Google account via `chrome.storage.sync`
+- **Offline-First**: Vocabulary, stats, and highlights stored locally; works without network
 
 ## Tech Stack
 
 - React 18 + TypeScript
 - Vite + CRXJS
-- Zustand (state management with chrome.storage persistence)
+- Zustand — vocabulary/stats/UI in `chrome.storage.local`, settings + API keys in `chrome.storage.sync`
 - Tailwind CSS
 - Chrome Extension Manifest V3
 
@@ -70,10 +71,13 @@ src/
 ├── options/              # Settings page with components and hooks
 ├── sidepanel/            # PDF lookup side panel
 ├── shared/               # Shared utilities and components
-│   ├── components/       # Reusable UI components
-│   ├── store.ts          # Zustand stores
-│   ├── translation-service.ts  # Multi-provider LLM translation
-│   └── spaced-repetition.ts    # SM-2 algorithm
+│   ├── components/                    # Reusable UI components
+│   ├── store.ts                       # Zustand stores (split persistence)
+│   ├── chrome-storage-adapter.ts      # Zustand ↔ chrome.storage.local
+│   ├── chrome-sync-storage-adapter.ts # Zustand ↔ chrome.storage.sync (settings)
+│   ├── settings-storage-access.ts     # Helper for non-Zustand callers
+│   ├── translation-service.ts         # Multi-provider LLM translation
+│   └── spaced-repetition.ts           # SM-2 algorithm
 └── types/                # TypeScript definitions
 ```
 
@@ -107,12 +111,35 @@ npx tsc --noEmit
 # Run tests
 npm run test
 
-# Build production
+# Build dev (includes dev key for stable extension ID)
 npm run build
+
+# Build for Chrome Web Store (strips dev key + verifies)
+npm run build:release
 
 # Lint
 npm run lint
 ```
+
+### Dev Extension Key (Cross-Device Sync Testing)
+
+`chrome.storage.sync` partitions data by extension ID. Unpacked dev installs
+get a random ID per machine, which breaks cross-device sync testing. The
+manifest injects a fixed public `key` for non-release builds so every dev
+install shares the same ID.
+
+```bash
+# Regenerate key (one-time, paste output into src/manifest.ts)
+npm run dev-key:generate
+```
+
+`build:release` automatically strips the `key` and runs
+`scripts/verify-release-manifest.mjs` — release builds will fail if a dev
+key ever leaks into the bundle.
+
+The committed public key is shared safely. The matching `.pem` private key
+(`scripts/dev-extension-key.pem`) is gitignored — it's only needed for
+signing `.crx` files, which unpacked installs don't use.
 
 ## Contributing
 

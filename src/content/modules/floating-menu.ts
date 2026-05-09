@@ -24,6 +24,7 @@ import {
   handleTargetLangTrigger,
   handleLangOptionClick
 } from './floating-menu-lang-handlers'
+import { patchSettings } from '@/shared/settings-storage-access'
 
 // Element reference
 let floatingButton: HTMLDivElement | null = null
@@ -163,24 +164,12 @@ function handleColorTrigger(clickedEl: HTMLElement, menu: HTMLDivElement): boole
 }
 
 /**
- * Save highlight color to storage.
+ * Save highlight color to storage (sync — issue #5).
  */
 function saveHighlightColorToStorage(color: string): void {
-  try {
-    chrome.storage.local.get('settings-storage', (result) => {
-      const stored = result['settings-storage']
-        ? JSON.parse(result['settings-storage'])
-        : { state: { settings: {} }, version: 0 }
-
-      if (!stored.state) stored.state = {}
-      if (!stored.state.settings) stored.state.settings = {}
-
-      stored.state.settings.highlightColor = color
-      chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
-    })
-  } catch (e) {
+  void patchSettings({ highlightColor: color }).catch(e =>
     console.warn('[VocabExt] Failed to save highlight color:', e)
-  }
+  )
 }
 
 /**

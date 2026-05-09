@@ -1,7 +1,13 @@
 /**
  * Notification Helpers Module
  * Storage access and data preparation for notifications.
+ *
+ * Settings live in chrome.storage.sync (issue #5: cross-device config sync).
+ * Vocabulary + stats remain in chrome.storage.local. Reads merge results so
+ * downstream parsers don't need to know which area each key lives in.
  */
+
+import { SETTINGS_KEY, getSettingsRaw, patchSettings } from './settings-storage-access'
 
 export interface WordPreview {
   word: string
@@ -128,17 +134,20 @@ export function getRandomWordPreview(
 
 /**
  * Get all notification data from storage.
+ * Vocabulary/stats from local; settings from sync (legacy local fallback).
  */
 export async function getNotificationData(): Promise<NotificationData> {
-  const result = await chrome.storage.local.get([
-    'vocabulary-storage',
-    'stats-storage',
-    'settings-storage'
+  const [localResult, settingsRaw] = await Promise.all([
+    chrome.storage.local.get(['vocabulary-storage', 'stats-storage']),
+    getSettingsRaw()
   ])
 
-  const settings = parseSettings(result)
-  const { words, flashcards } = parseVocabData(result)
-  const { streak } = parseStatsData(result)
+  const merged: Record<string, string> = { ...(localResult as Record<string, string>) }
+  if (settingsRaw) merged[SETTINGS_KEY] = settingsRaw
+
+  const settings = parseSettings(merged)
+  const { words, flashcards } = parseVocabData(merged)
+  const { streak } = parseStatsData(merged)
   const dueCards = getDueCards(flashcards)
 
   return {
@@ -154,8 +163,9 @@ export async function getNotificationData(): Promise<NotificationData> {
  * Check if notifications are enabled in settings.
  */
 export async function areNotificationsEnabled(): Promise<boolean> {
-  const result = await chrome.storage.local.get(['settings-storage'])
-  const settings = parseSettings(result)
+  const raw = await getSettingsRaw()
+  if (!raw) return false
+  const settings = parseSettings({ [SETTINGS_KEY]: raw })
   return settings?.notificationsEnabled ?? false
 }
 
@@ -169,8 +179,9 @@ export function getNextLocalMidnight(now: number = Date.now()): number {
 // Read study-reminder snooze timestamp; undefined if missing, malformed, or non-finite.
 export async function getStudyReminderSnoozeUntil(): Promise<number | undefined> {
   try {
-    const result = await chrome.storage.local.get(['settings-storage'])
-    const ts = parseSettings(result)?.studyReminderSnoozeUntil
+    const raw = await getSettingsRaw()
+    if (!raw) return undefined
+    const ts = parseSettings({ [SETTINGS_KEY]: raw })?.studyReminderSnoozeUntil
     return typeof ts === 'number' && Number.isFinite(ts) ? ts : undefined
   } catch (e) {
     console.warn('[VocabExt] Failed to read snooze timestamp:', e)
@@ -182,26 +193,21 @@ export async function getStudyReminderSnoozeUntil(): Promise<number | undefined>
 // NOTE: RMW races Zustand persist on `settings-storage` (`store.ts:239`). Concurrency window
 // is tiny (snooze click ≤ 1/day vs settings edits while Options open). Best-effort by design;
 // last-writer-wins. Per-write strict locking is out of scope for v1.
+// Settings live in chrome.storage.sync as of issue #5; patchSettings handles sync writes.
 export async function setStudyReminderSnoozeUntil(ts: number | undefined): Promise<void> {
   try {
     if (ts !== undefined && (typeof ts !== 'number' || !Number.isFinite(ts))) {
       console.warn('[VocabExt] Refusing to write non-finite snooze timestamp:', ts)
       return
     }
-    const result = await chrome.storage.local.get(['settings-storage'])
-    const raw = result['settings-storage']
-    let parsed: { state?: { settings?: Record<string, unknown> } } = {}
-    if (typeof raw === 'string') {
-      try { parsed = JSON.parse(raw) } catch { parsed = {} }
-    }
-    if (!parsed.state) parsed.state = {}
-    if (!parsed.state.settings) parsed.state.settings = {}
     if (ts === undefined) {
-      delete parsed.state.settings.studyReminderSnoozeUntil
+      // Patch with explicit undefined removes by JSON.stringify dropping the key
+      // only if we use a sentinel — but our patchSettings does shallow merge, so
+      // we need to read-modify-write to drop the field cleanly.
+      await patchSettings({ studyReminderSnoozeUntil: undefined })
     } else {
-      parsed.state.settings.studyReminderSnoozeUntil = ts
+      await patchSettings({ studyReminderSnoozeUntil: ts })
     }
-    await chrome.storage.local.set({ 'settings-storage': JSON.stringify(parsed) })
   } catch (e) {
     console.warn('[VocabExt] Failed to write snooze timestamp:', e)
   }

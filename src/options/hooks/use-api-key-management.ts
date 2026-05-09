@@ -50,18 +50,30 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
   const currentProvider = getProviderConfig(currentProviderId)
   const currentKeyState = providerApiKeys[currentProvider.id]
 
-  // Load API keys for all providers on mount
+  // Load API keys for all providers on mount.
+  // Sync first; legacy local fallback for users upgrading from v1.0.5.
   useEffect(() => {
-    LLM_PROVIDERS.forEach(provider => {
-      chrome.storage.local.get([provider.apiKeyStorageKey], (result) => {
-        const key = result[provider.apiKeyStorageKey]
+    LLM_PROVIDERS.forEach(async provider => {
+      const sync = await chrome.storage.sync.get([provider.apiKeyStorageKey])
+      let key = sync[provider.apiKeyStorageKey] as string | undefined
+      if (!key) {
+        const local = await chrome.storage.local.get([provider.apiKeyStorageKey])
+        key = local[provider.apiKeyStorageKey] as string | undefined
         if (key) {
-          setProviderApiKeys(prev => ({
-            ...prev,
-            [provider.id]: { value: maskApiKey(key), saved: true }
-          }))
+          // Best-effort migrate to sync.
+          try {
+            await chrome.storage.sync.set({ [provider.apiKeyStorageKey]: key })
+          } catch {
+            // ignore quota errors
+          }
         }
-      })
+      }
+      if (key) {
+        setProviderApiKeys(prev => ({
+          ...prev,
+          [provider.id]: { value: maskApiKey(key as string), saved: true }
+        }))
+      }
     })
   }, [])
 
@@ -88,18 +100,21 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
     }
   }
 
-  const handleApiKeyBlur = () => {
+  const handleApiKeyBlur = async () => {
     // Restore saved key if user leaves empty
     if (!currentKeyState.value && !currentKeyState.saved) {
-      chrome.storage.local.get([currentProvider.apiKeyStorageKey], (result) => {
-        const key = result[currentProvider.apiKeyStorageKey]
-        if (key) {
-          setProviderApiKeys(prev => ({
-            ...prev,
-            [currentProvider.id]: { value: maskApiKey(key), saved: true }
-          }))
-        }
-      })
+      const sync = await chrome.storage.sync.get([currentProvider.apiKeyStorageKey])
+      let key = sync[currentProvider.apiKeyStorageKey] as string | undefined
+      if (!key) {
+        const local = await chrome.storage.local.get([currentProvider.apiKeyStorageKey])
+        key = local[currentProvider.apiKeyStorageKey] as string | undefined
+      }
+      if (key) {
+        setProviderApiKeys(prev => ({
+          ...prev,
+          [currentProvider.id]: { value: maskApiKey(key as string), saved: true }
+        }))
+      }
     }
   }
 
@@ -111,8 +126,8 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
     setTestResult({ status: 'testing', message: 'Verifying API key...' })
     try {
       await testConnection(currentProvider.id, keyValue)
-      // Test passed - save the key
-      await chrome.storage.local.set({ [currentProvider.apiKeyStorageKey]: keyValue })
+      // Test passed - save the key (sync storage for cross-device).
+      await chrome.storage.sync.set({ [currentProvider.apiKeyStorageKey]: keyValue })
       setProviderApiKeys(prev => ({
         ...prev,
         [currentProvider.id]: { value: maskApiKey(keyValue), saved: true }
@@ -127,6 +142,8 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
   }
 
   const handleClearApiKey = async () => {
+    // Remove from both sync and any legacy local copy.
+    await chrome.storage.sync.remove(currentProvider.apiKeyStorageKey)
     await chrome.storage.local.remove(currentProvider.apiKeyStorageKey)
     setProviderApiKeys(prev => ({
       ...prev,
