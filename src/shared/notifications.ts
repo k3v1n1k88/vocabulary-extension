@@ -9,8 +9,27 @@ import {
   getRandomWordPreview,
   parseSettings,
   parseVocabData,
-  getDueCards
+  getDueCards,
+  getNextLocalMidnight,
+  setStudyReminderSnoozeUntil
 } from './notification-helpers'
+import { buildReminderContent } from './notification-content-builder'
+
+// Notification ID prefix reserved for study-reminder notifications (carries snooze buttons).
+const REMINDER_ID_PREFIX = 'daily-reminder-'
+const SNOOZE_ONE_HOUR_MS = 60 * 60 * 1000
+
+// Idempotency guards: service-worker.ts calls initNotifications() both on onInstalled and at top
+// level; without these guards, listeners would register twice on install/update and run handlers
+// twice (RMW collision on snooze write, double openPopup, etc).
+let alarmHandlerRegistered = false
+let clickHandlerRegistered = false
+
+/** @internal — test-only: resets module-level listener guards. */
+export function __resetListenerGuardsForTests(): void {
+  alarmHandlerRegistered = false
+  clickHandlerRegistered = false
+}
 
 /**
  * Detect if running on MacOS (requireInteraction not supported on MacOS).
@@ -53,7 +72,9 @@ export async function scheduleDueCardsCheck(): Promise<void> {
 }
 
 /**
- * Show notification for daily study reminder with a random word preview.
+ * Show study-reminder notification (packed: title + message + contextMessage + 2 buttons).
+ * NOTE: snooze gating lives in handleStudyReminderAlarm. This function is unconditional
+ * so TEST_NOTIFICATION (and any future direct caller) always fires.
  */
 export async function showDailyReminder(
   dueCount: number,
@@ -67,32 +88,15 @@ export async function showDailyReminder(
       return
     }
 
-    // Build notification content
-    let title = 'Time to Study!'
-    let message = ''
+    const { title, message, contextMessage } = buildReminderContent(dueCount, streak, randomWord)
 
-    if (randomWord) {
-      title = `Learn: "${randomWord.word}"`
-      message = randomWord.definition.slice(0, 100)
-      if (randomWord.translation) {
-        message += `\n${randomWord.translation}`
-      }
-      if (dueCount > 1) {
-        message += `\n\n+${dueCount - 1} more cards waiting`
-      }
-    } else if (dueCount > 0) {
-      message = `You have ${dueCount} cards waiting for review!`
-    } else if (streak > 0) {
-      message = `Keep your ${streak}-day streak going!`
-    } else {
-      message = 'Start building your vocabulary today!'
-    }
-
-    const notificationId = await chrome.notifications.create('daily-reminder-' + Date.now(), {
+    const notificationId = await chrome.notifications.create(REMINDER_ID_PREFIX + Date.now(), {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
       title,
       message,
+      ...(contextMessage ? { contextMessage } : {}),
+      buttons: [{ title: 'Snooze 1h' }, { title: 'Skip today' }],
       priority: 2,
       ...(isMacOS() ? {} : { requireInteraction: true })
     })
@@ -146,21 +150,31 @@ export async function showWordSavedNotification(word: string): Promise<void> {
 }
 
 /**
- * Handle study reminder alarm.
+ * Handle study reminder alarm. Gates on snooze; auto-clears expired snooze.
+ * Exported for testability.
  */
-async function handleStudyReminderAlarm(): Promise<void> {
+export async function handleStudyReminderAlarm(): Promise<void> {
   const data = await getNotificationData()
 
   if (!data.settings?.notificationsEnabled) return
+
+  const snoozeUntil = data.settings.studyReminderSnoozeUntil
+  const now = Date.now()
+  if (snoozeUntil) {
+    if (now < snoozeUntil) return
+    // Stale snooze: clear and proceed.
+    await setStudyReminderSnoozeUntil(undefined)
+  }
 
   const randomWord = getRandomWordPreview(data.words, data.dueCards)
   await showDailyReminder(data.dueCount, data.streak, randomWord)
 }
 
 /**
- * Handle due cards check alarm.
+ * Handle due cards check alarm. Independent of snooze (per plan: snooze targets study reminders only).
+ * Exported for testability.
  */
-async function handleDueCardsCheckAlarm(): Promise<void> {
+export async function handleDueCardsCheckAlarm(): Promise<void> {
   const result = await chrome.storage.local.get(['vocabulary-storage', 'settings-storage'])
 
   const settings = parseSettings(result)
@@ -176,9 +190,11 @@ async function handleDueCardsCheckAlarm(): Promise<void> {
 }
 
 /**
- * Handle alarm events.
+ * Handle alarm events. Idempotent — safe to call from multiple init paths.
  */
 export function setupAlarmHandler(): void {
+  if (alarmHandlerRegistered) return
+  alarmHandlerRegistered = true
   chrome.alarms.onAlarm.addListener(async (alarm) => {
     console.log('[VocabExt] Alarm triggered:', alarm.name)
 
@@ -193,10 +209,24 @@ export function setupAlarmHandler(): void {
 }
 
 /**
- * Handle notification button clicks.
+ * Handle notification button clicks. Idempotent — safe to call from multiple init paths.
+ * MV3: listener registration must stay top-level + synchronous (no async IIFE).
  */
 export function setupNotificationClickHandler(): void {
-  chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  if (clickHandlerRegistered) return
+  clickHandlerRegistered = true
+  chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+    if (notificationId.startsWith(REMINDER_ID_PREFIX)) {
+      if (buttonIndex === 0) {
+        await setStudyReminderSnoozeUntil(Date.now() + SNOOZE_ONE_HOUR_MS)
+      } else if (buttonIndex === 1) {
+        await setStudyReminderSnoozeUntil(getNextLocalMidnight())
+      }
+      chrome.notifications.clear(notificationId)
+      return
+    }
+
+    // Legacy behavior for any other notification type with buttons.
     if (buttonIndex === 0) {
       chrome.action.openPopup()
     }

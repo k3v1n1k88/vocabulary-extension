@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Toggle } from '@/shared/components'
 import type { UserSettings } from '@/types'
 
@@ -14,6 +15,12 @@ export function LearningSettings({
   isRecordingShortcut,
   onRecordShortcut
 }: LearningSettingsProps) {
+  // Snapshot "now" once on mount; banner does not auto-refresh (YAGNI).
+  const [mountedAt] = useState(() => Date.now())
+  const snoozeUntil = settings.studyReminderSnoozeUntil
+  const isSnoozeActive = !!snoozeUntil && mountedAt < snoozeUntil
+  const snoozeUntilLabel = snoozeUntil ? new Date(snoozeUntil).toLocaleString() : ''
+
   return (
     <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Learning Settings</h2>
@@ -74,6 +81,19 @@ export function LearningSettings({
 
         {settings.notificationsEnabled && (
           <div className="ml-4 pl-4 border-l-2 border-primary-100">
+            {isSnoozeActive && (
+              <div className="mb-4 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                <div className="text-sm text-amber-900">
+                  🔕 Reminders paused until <span className="font-medium">{snoozeUntilLabel}</span>
+                </div>
+                <button
+                  onClick={() => onSettingsUpdate({ studyReminderSnoozeUntil: undefined })}
+                  className="text-sm text-primary-700 hover:text-primary-800 font-medium"
+                >
+                  Resume now
+                </button>
+              </div>
+            )}
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Reminder Interval
             </label>

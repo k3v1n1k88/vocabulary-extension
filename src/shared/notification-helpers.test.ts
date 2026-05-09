@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   parseSettings,
   parseVocabData,
   parseStatsData,
   getDueCards,
   getRandomWordPreview,
+  getNextLocalMidnight,
+  getStudyReminderSnoozeUntil,
+  setStudyReminderSnoozeUntil,
   type NotificationData
 } from './notification-helpers'
 
@@ -127,9 +130,22 @@ describe('getDueCards', () => {
 
 describe('getRandomWordPreview', () => {
   const words: NotificationData['words'] = [
-    { id: '1', word: 'apple', definition: 'a fruit', vietnameseTranslation: 'quả táo' },
+    {
+      id: '1',
+      word: 'apple',
+      definition: 'a fruit',
+      vietnameseTranslation: 'quả táo',
+      pronunciation: 'ˈæpəl',
+      partOfSpeech: 'noun'
+    },
     { id: '2', word: 'banana', definition: 'yellow fruit' },
-    { id: '3', word: 'cherry', definition: 'red fruit', vietnameseTranslation: 'quả anh đào' }
+    {
+      id: '3',
+      word: 'cherry',
+      definition: 'red fruit',
+      vietnameseTranslation: 'quả anh đào',
+      partOfSpeech: 'noun'
+    }
   ]
 
   it('returns undefined for empty words array', () => {
@@ -170,5 +186,155 @@ describe('getRandomWordPreview', () => {
     // Should fall back to random word since id '999' doesn't exist
     expect(result).toBeDefined()
     expect(['apple', 'banana', 'cherry']).toContain(result?.word)
+  })
+
+  it('includes pronunciation when present (due-card branch)', () => {
+    const dueCards: NotificationData['dueCards'] = [['1', { nextReview: 0 }]]
+    const result = getRandomWordPreview(words, dueCards)
+    expect(result?.pronunciation).toBe('ˈæpəl')
+  })
+
+  it('includes partOfSpeech when present (due-card branch)', () => {
+    const dueCards: NotificationData['dueCards'] = [['3', { nextReview: 0 }]]
+    const result = getRandomWordPreview(words, dueCards)
+    expect(result?.partOfSpeech).toBe('noun')
+  })
+
+  it('omits pronunciation when missing on word', () => {
+    const dueCards: NotificationData['dueCards'] = [['2', { nextReview: 0 }]]
+    const result = getRandomWordPreview(words, dueCards)
+    expect(result?.pronunciation).toBeUndefined()
+    expect(result?.partOfSpeech).toBeUndefined()
+  })
+})
+
+describe('getNextLocalMidnight', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('returns next local 00:00 from mid-day', () => {
+    vi.setSystemTime(new Date(2026, 4, 9, 15, 30, 0))
+    const d = new Date(getNextLocalMidnight())
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(4)
+    expect(d.getDate()).toBe(10)
+    expect(d.getHours()).toBe(0)
+    expect(d.getMinutes()).toBe(0)
+    expect(d.getSeconds()).toBe(0)
+  })
+
+  it('rolls over month boundary', () => {
+    vi.setSystemTime(new Date(2026, 4, 31, 23, 59, 0))
+    const d = new Date(getNextLocalMidnight())
+    expect(d.getMonth()).toBe(5)
+    expect(d.getDate()).toBe(1)
+  })
+
+  it('accepts explicit `now` arg', () => {
+    const explicit = new Date(2026, 0, 1, 12, 0, 0).getTime()
+    const d = new Date(getNextLocalMidnight(explicit))
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(0)
+    expect(d.getDate()).toBe(2)
+  })
+})
+
+describe('getStudyReminderSnoozeUntil', () => {
+  it('returns undefined when settings-storage missing', async () => {
+    const result = await getStudyReminderSnoozeUntil()
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined when settings has no studyReminderSnoozeUntil', async () => {
+    await chrome.storage.local.set({
+      'settings-storage': JSON.stringify({ state: { settings: { notificationsEnabled: true } } })
+    })
+    const result = await getStudyReminderSnoozeUntil()
+    expect(result).toBeUndefined()
+  })
+
+  it('returns the stored number when present', async () => {
+    await chrome.storage.local.set({
+      'settings-storage': JSON.stringify({
+        state: { settings: { studyReminderSnoozeUntil: 1_700_000_000_000 } }
+      })
+    })
+    const result = await getStudyReminderSnoozeUntil()
+    expect(result).toBe(1_700_000_000_000)
+  })
+
+  it('returns undefined for malformed JSON', async () => {
+    await chrome.storage.local.set({ 'settings-storage': 'not-json' })
+    const result = await getStudyReminderSnoozeUntil()
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined for non-finite stored value', async () => {
+    await chrome.storage.local.set({
+      'settings-storage': JSON.stringify({
+        state: { settings: { studyReminderSnoozeUntil: 'oops' } }
+      })
+    })
+    const result = await getStudyReminderSnoozeUntil()
+    expect(result).toBeUndefined()
+  })
+})
+
+describe('setStudyReminderSnoozeUntil', () => {
+  it('writes ts and preserves other settings keys', async () => {
+    await chrome.storage.local.set({
+      'settings-storage': JSON.stringify({
+        state: { settings: { notificationsEnabled: true, dailyGoal: 20 } }
+      })
+    })
+
+    await setStudyReminderSnoozeUntil(1_700_000_000_000)
+
+    const stored = await chrome.storage.local.get(['settings-storage'])
+    const parsed = JSON.parse(stored['settings-storage'])
+    expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
+    expect(parsed.state.settings.notificationsEnabled).toBe(true)
+    expect(parsed.state.settings.dailyGoal).toBe(20)
+  })
+
+  it('removes key when ts is undefined', async () => {
+    await chrome.storage.local.set({
+      'settings-storage': JSON.stringify({
+        state: {
+          settings: { notificationsEnabled: true, studyReminderSnoozeUntil: 1_700_000_000_000 }
+        }
+      })
+    })
+
+    await setStudyReminderSnoozeUntil(undefined)
+
+    const stored = await chrome.storage.local.get(['settings-storage'])
+    const parsed = JSON.parse(stored['settings-storage'])
+    expect('studyReminderSnoozeUntil' in parsed.state.settings).toBe(false)
+    expect(parsed.state.settings.notificationsEnabled).toBe(true)
+  })
+
+  it('builds envelope when settings-storage missing', async () => {
+    await setStudyReminderSnoozeUntil(1_700_000_000_000)
+
+    const stored = await chrome.storage.local.get(['settings-storage'])
+    const parsed = JSON.parse(stored['settings-storage'])
+    expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
+  })
+
+  it('rebuilds envelope when stored JSON is malformed', async () => {
+    await chrome.storage.local.set({ 'settings-storage': 'not-json' })
+
+    await setStudyReminderSnoozeUntil(1_700_000_000_000)
+
+    const stored = await chrome.storage.local.get(['settings-storage'])
+    const parsed = JSON.parse(stored['settings-storage'])
+    expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
+  })
+
+  it('refuses to write non-finite ts', async () => {
+    const setSpy = vi.spyOn(chrome.storage.local, 'set')
+    await setStudyReminderSnoozeUntil(Number.NaN)
+    expect(setSpy).not.toHaveBeenCalled()
   })
 })

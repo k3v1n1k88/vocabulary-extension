@@ -86,6 +86,7 @@ export interface UserSettings {
   llmProvider: LLMProvider // selected LLM provider
   llmModel?: string // selected model for current provider
   highlightColor: string // hex color for text highlights (default: '#ffeb3b')
+  studyReminderSnoozeUntil?: number // ms epoch; undefined = active reminders
 }
 
 // Supported translation languages
