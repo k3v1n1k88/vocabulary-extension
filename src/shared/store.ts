@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Word, FlashcardData, UserStats, UserSettings, TabType } from '@/types'
 import { chromeStorage } from './chrome-storage-adapter'
+import { chromeSyncStorage } from './chrome-sync-storage-adapter'
 
 // Vocabulary store
 interface VocabularyState {
@@ -229,14 +230,18 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'settings-storage',
-      storage: createJSONStorage(() => chromeStorage)
+      storage: createJSONStorage(() => chromeSyncStorage)
     }
   )
 )
 
-// Sync settings store when external changes occur (e.g., from content script)
+// Cross-device + cross-tab settings sync.
+// Settings live in chrome.storage.sync, so we only react to that area.
+// Other stores (vocabulary, stats) write to local; ignoring those avoids
+// duplicate parsing on unrelated changes.
 if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
-  chrome.storage.onChanged.addListener((changes) => {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') return
     if (changes['settings-storage']?.newValue) {
       try {
         const parsed = JSON.parse(changes['settings-storage'].newValue)

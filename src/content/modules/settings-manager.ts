@@ -1,9 +1,14 @@
 /**
  * Settings Manager Module
  * Manages cached settings state and storage synchronization.
+ *
+ * Settings live in chrome.storage.sync (issue #5: cross-device config sync).
+ * Falls back to chrome.storage.local for legacy v1.0.5 installs that haven't
+ * been migrated yet by the popup/options paths.
  */
 
 import { SUPPORTED_LANGUAGES } from '@/types'
+import { SETTINGS_KEY, patchSettings } from '@/shared/settings-storage-access'
 
 // Cached settings state
 let cachedTargetLanguage = 'Vietnamese'
@@ -13,53 +18,52 @@ let cachedUseLLMTranslation = false
 let cachedHighlightColor = '#ffeb3b' // Default yellow
 
 /**
- * Initialize settings from storage.
+ * Apply a parsed settings-storage payload to the cache.
+ */
+function applySettings(rawValue: string | undefined | null): void {
+  if (!rawValue) return
+  try {
+    const parsed = JSON.parse(rawValue)
+    const settings = parsed.state?.settings || parsed.state || {}
+    const targetCode = settings.targetLanguage || 'vi'
+    const targetLang = SUPPORTED_LANGUAGES.find(l => l.code === targetCode)
+    if (targetLang) {
+      cachedTargetLanguage = targetLang.name
+    }
+    cachedSourceLangCode = settings.sourceLanguage || 'en'
+    const sourceLang = SUPPORTED_LANGUAGES.find(l => l.code === cachedSourceLangCode)
+    if (sourceLang) {
+      cachedSourceLanguage = sourceLang.name
+    }
+    cachedUseLLMTranslation = settings.useLLMTranslation ?? false
+    cachedHighlightColor = settings.highlightColor || '#ffeb3b'
+  } catch (e) {
+    console.warn('[VocabExt] Failed to parse settings:', e)
+  }
+}
+
+/**
+ * Initialize settings from storage. Sync first, fall back to local for legacy.
  */
 export function initSettings(): void {
-  chrome.storage.local.get('settings-storage', (result) => {
-    if (result['settings-storage']) {
-      try {
-        const parsed = JSON.parse(result['settings-storage'])
-        const settings = parsed.state?.settings || parsed.state || {}
-        const targetCode = settings.targetLanguage || 'vi'
-        const targetLang = SUPPORTED_LANGUAGES.find(l => l.code === targetCode)
-        if (targetLang) {
-          cachedTargetLanguage = targetLang.name
-        }
-        cachedSourceLangCode = settings.sourceLanguage || 'en'
-        const sourceLang = SUPPORTED_LANGUAGES.find(l => l.code === cachedSourceLangCode)
-        if (sourceLang) {
-          cachedSourceLanguage = sourceLang.name
-        }
-        cachedUseLLMTranslation = settings.useLLMTranslation ?? false
-        cachedHighlightColor = settings.highlightColor || '#ffeb3b'
-      } catch (e) {
-        console.warn('[VocabExt] Failed to parse settings:', e)
-      }
+  chrome.storage.sync.get(SETTINGS_KEY, (syncResult) => {
+    const syncValue = syncResult[SETTINGS_KEY]
+    if (syncValue) {
+      applySettings(syncValue)
+      return
     }
+    // Legacy fallback (read-only here; popup/options will migrate writes).
+    chrome.storage.local.get(SETTINGS_KEY, (localResult) => {
+      applySettings(localResult[SETTINGS_KEY])
+    })
   })
 
-  // Listen for settings changes
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes['settings-storage']?.newValue) {
-      try {
-        const parsed = JSON.parse(changes['settings-storage'].newValue)
-        const settings = parsed.state?.settings || parsed.state || {}
-        const targetCode = settings.targetLanguage || 'vi'
-        const targetLang = SUPPORTED_LANGUAGES.find(l => l.code === targetCode)
-        if (targetLang) {
-          cachedTargetLanguage = targetLang.name
-        }
-        cachedSourceLangCode = settings.sourceLanguage || 'en'
-        const sourceLang = SUPPORTED_LANGUAGES.find(l => l.code === cachedSourceLangCode)
-        if (sourceLang) {
-          cachedSourceLanguage = sourceLang.name
-        }
-        cachedUseLLMTranslation = settings.useLLMTranslation ?? false
-        cachedHighlightColor = settings.highlightColor || '#ffeb3b'
-      } catch (e) {
-        console.warn('[VocabExt] Failed to parse settings change:', e)
-      }
+  // React only to sync-area changes; vocabulary/stats live in local
+  // and shouldn't trigger settings re-cache.
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') return
+    if (changes[SETTINGS_KEY]?.newValue) {
+      applySettings(changes[SETTINGS_KEY].newValue)
     }
   })
 }
@@ -96,34 +100,18 @@ export function isLLMTranslationEnabled(): boolean {
  * Save target language to storage (updates Zustand persist format).
  */
 export function saveTargetLanguage(langCode: string): void {
-  chrome.storage.local.get('settings-storage', (result) => {
-    try {
-      const stored = result['settings-storage'] ? JSON.parse(result['settings-storage']) : { state: { settings: {} }, version: 0 }
-      if (!stored.state) stored.state = {}
-      if (!stored.state.settings) stored.state.settings = {}
-      stored.state.settings.targetLanguage = langCode
-      chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
-    } catch (e) {
-      console.warn('[VocabExt] Failed to save target language:', e)
-    }
-  })
+  void patchSettings({ targetLanguage: langCode }).catch(e =>
+    console.warn('[VocabExt] Failed to save target language:', e)
+  )
 }
 
 /**
  * Save source language to storage (for free translation).
  */
 export function saveSourceLanguage(langCode: string): void {
-  chrome.storage.local.get('settings-storage', (result) => {
-    try {
-      const stored = result['settings-storage'] ? JSON.parse(result['settings-storage']) : { state: { settings: {} }, version: 0 }
-      if (!stored.state) stored.state = {}
-      if (!stored.state.settings) stored.state.settings = {}
-      stored.state.settings.sourceLanguage = langCode
-      chrome.storage.local.set({ 'settings-storage': JSON.stringify(stored) })
-    } catch (e) {
-      console.warn('[VocabExt] Failed to save source language:', e)
-    }
-  })
+  void patchSettings({ sourceLanguage: langCode }).catch(e =>
+    console.warn('[VocabExt] Failed to save source language:', e)
+  )
 }
 
 /**

@@ -3,6 +3,8 @@
  * Manages keyboard shortcut settings and event handling.
  */
 
+import { SETTINGS_KEY, getSettings } from '@/shared/settings-storage-access'
+
 // Cached shortcut settings
 let lookupShortcutEnabled = false
 let lookupShortcut = ''
@@ -14,37 +16,43 @@ let modifierUsed = false
 // Callback for shortcut trigger
 let onShortcutTriggered: (() => void) | null = null
 
+interface ShortcutSettings {
+  lookupShortcutEnabled?: boolean
+  lookupShortcut?: string
+}
+
+function applyShortcutSettings(settings: ShortcutSettings | null, log: 'init' | 'change'): boolean {
+  const wasEnabled = lookupShortcutEnabled
+  lookupShortcutEnabled = settings?.lookupShortcutEnabled ?? false
+  lookupShortcut = settings?.lookupShortcut || 'Ctrl+Shift+D'
+  console.log(
+    log === 'init'
+      ? '[VocabExt] Loaded shortcut settings:'
+      : '[VocabExt] Shortcut settings updated:',
+    { enabled: lookupShortcutEnabled, shortcut: lookupShortcut }
+  )
+  return wasEnabled
+}
+
 /**
  * Initialize keyboard shortcut settings and listeners.
  */
 export function initKeyboardShortcuts(callback: () => void): void {
   onShortcutTriggered = callback
 
-  // Load shortcut settings from storage
-  chrome.storage.local.get('settings-storage', (result) => {
-    if (result['settings-storage']) {
-      try {
-        const parsed = JSON.parse(result['settings-storage'])
-        const settings = parsed.state?.settings || parsed.state
-        lookupShortcutEnabled = settings?.lookupShortcutEnabled ?? false
-        lookupShortcut = settings?.lookupShortcut || 'Ctrl+Shift+D'
-        console.log('[VocabExt] Loaded shortcut settings:', { enabled: lookupShortcutEnabled, shortcut: lookupShortcut })
-      } catch (e) {
-        console.warn('[VocabExt] Failed to parse settings:', e)
-      }
-    }
-  })
+  // Load shortcut settings from sync storage (legacy local fallback inside helper).
+  void getSettings<ShortcutSettings>()
+    .then(settings => applyShortcutSettings(settings, 'init'))
+    .catch(e => console.warn('[VocabExt] Failed to load shortcut settings:', e))
 
-  // Listen for settings changes
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes['settings-storage']?.newValue) {
+  // React only to sync-area changes; vocabulary/stats live in local.
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') return
+    if (changes[SETTINGS_KEY]?.newValue) {
       try {
-        const parsed = JSON.parse(changes['settings-storage'].newValue)
-        const settings = parsed.state?.settings || parsed.state
-        const wasEnabled = lookupShortcutEnabled
-        lookupShortcutEnabled = settings?.lookupShortcutEnabled ?? false
-        lookupShortcut = settings?.lookupShortcut || 'Ctrl+Shift+D'
-        console.log('[VocabExt] Shortcut settings updated:', { enabled: lookupShortcutEnabled, shortcut: lookupShortcut })
+        const parsed = JSON.parse(changes[SETTINGS_KEY].newValue)
+        const settings = (parsed.state?.settings || parsed.state) as ShortcutSettings | null
+        const wasEnabled = applyShortcutSettings(settings, 'change')
 
         // If shortcut mode just got enabled, hide any existing floating menu
         if (!wasEnabled && lookupShortcutEnabled) {

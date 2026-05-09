@@ -246,7 +246,7 @@ describe('getStudyReminderSnoozeUntil', () => {
   })
 
   it('returns undefined when settings has no studyReminderSnoozeUntil', async () => {
-    await chrome.storage.local.set({
+    await chrome.storage.sync.set({
       'settings-storage': JSON.stringify({ state: { settings: { notificationsEnabled: true } } })
     })
     const result = await getStudyReminderSnoozeUntil()
@@ -254,7 +254,7 @@ describe('getStudyReminderSnoozeUntil', () => {
   })
 
   it('returns the stored number when present', async () => {
-    await chrome.storage.local.set({
+    await chrome.storage.sync.set({
       'settings-storage': JSON.stringify({
         state: { settings: { studyReminderSnoozeUntil: 1_700_000_000_000 } }
       })
@@ -264,13 +264,13 @@ describe('getStudyReminderSnoozeUntil', () => {
   })
 
   it('returns undefined for malformed JSON', async () => {
-    await chrome.storage.local.set({ 'settings-storage': 'not-json' })
+    await chrome.storage.sync.set({ 'settings-storage': 'not-json' })
     const result = await getStudyReminderSnoozeUntil()
     expect(result).toBeUndefined()
   })
 
   it('returns undefined for non-finite stored value', async () => {
-    await chrome.storage.local.set({
+    await chrome.storage.sync.set({
       'settings-storage': JSON.stringify({
         state: { settings: { studyReminderSnoozeUntil: 'oops' } }
       })
@@ -281,8 +281,9 @@ describe('getStudyReminderSnoozeUntil', () => {
 })
 
 describe('setStudyReminderSnoozeUntil', () => {
+  // Settings live in chrome.storage.sync (issue #5: cross-device sync).
   it('writes ts and preserves other settings keys', async () => {
-    await chrome.storage.local.set({
+    await chrome.storage.sync.set({
       'settings-storage': JSON.stringify({
         state: { settings: { notificationsEnabled: true, dailyGoal: 20 } }
       })
@@ -290,7 +291,7 @@ describe('setStudyReminderSnoozeUntil', () => {
 
     await setStudyReminderSnoozeUntil(1_700_000_000_000)
 
-    const stored = await chrome.storage.local.get(['settings-storage'])
+    const stored = await chrome.storage.sync.get(['settings-storage'])
     const parsed = JSON.parse(stored['settings-storage'])
     expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
     expect(parsed.state.settings.notificationsEnabled).toBe(true)
@@ -298,7 +299,7 @@ describe('setStudyReminderSnoozeUntil', () => {
   })
 
   it('removes key when ts is undefined', async () => {
-    await chrome.storage.local.set({
+    await chrome.storage.sync.set({
       'settings-storage': JSON.stringify({
         state: {
           settings: { notificationsEnabled: true, studyReminderSnoozeUntil: 1_700_000_000_000 }
@@ -308,7 +309,7 @@ describe('setStudyReminderSnoozeUntil', () => {
 
     await setStudyReminderSnoozeUntil(undefined)
 
-    const stored = await chrome.storage.local.get(['settings-storage'])
+    const stored = await chrome.storage.sync.get(['settings-storage'])
     const parsed = JSON.parse(stored['settings-storage'])
     expect('studyReminderSnoozeUntil' in parsed.state.settings).toBe(false)
     expect(parsed.state.settings.notificationsEnabled).toBe(true)
@@ -317,23 +318,23 @@ describe('setStudyReminderSnoozeUntil', () => {
   it('builds envelope when settings-storage missing', async () => {
     await setStudyReminderSnoozeUntil(1_700_000_000_000)
 
-    const stored = await chrome.storage.local.get(['settings-storage'])
+    const stored = await chrome.storage.sync.get(['settings-storage'])
     const parsed = JSON.parse(stored['settings-storage'])
     expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
   })
 
   it('rebuilds envelope when stored JSON is malformed', async () => {
-    await chrome.storage.local.set({ 'settings-storage': 'not-json' })
+    await chrome.storage.sync.set({ 'settings-storage': 'not-json' })
 
     await setStudyReminderSnoozeUntil(1_700_000_000_000)
 
-    const stored = await chrome.storage.local.get(['settings-storage'])
+    const stored = await chrome.storage.sync.get(['settings-storage'])
     const parsed = JSON.parse(stored['settings-storage'])
     expect(parsed.state.settings.studyReminderSnoozeUntil).toBe(1_700_000_000_000)
   })
 
   it('refuses to write non-finite ts', async () => {
-    const setSpy = vi.spyOn(chrome.storage.local, 'set')
+    const setSpy = vi.spyOn(chrome.storage.sync, 'set')
     await setStudyReminderSnoozeUntil(Number.NaN)
     expect(setSpy).not.toHaveBeenCalled()
   })

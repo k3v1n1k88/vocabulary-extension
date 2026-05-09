@@ -13,6 +13,7 @@ import {
   getNextLocalMidnight,
   setStudyReminderSnoozeUntil
 } from './notification-helpers'
+import { SETTINGS_KEY, getSettingsRaw } from './settings-storage-access'
 import { buildReminderContent } from './notification-content-builder'
 
 // Notification ID prefix reserved for study-reminder notifications (carries snooze buttons).
@@ -175,12 +176,18 @@ export async function handleStudyReminderAlarm(): Promise<void> {
  * Exported for testability.
  */
 export async function handleDueCardsCheckAlarm(): Promise<void> {
-  const result = await chrome.storage.local.get(['vocabulary-storage', 'settings-storage'])
+  // Vocabulary lives in local; settings live in sync (issue #5).
+  const [localResult, settingsRaw] = await Promise.all([
+    chrome.storage.local.get(['vocabulary-storage']),
+    getSettingsRaw()
+  ])
+  const merged: Record<string, string> = { ...(localResult as Record<string, string>) }
+  if (settingsRaw) merged[SETTINGS_KEY] = settingsRaw
 
-  const settings = parseSettings(result)
+  const settings = parseSettings(merged)
   if (!settings?.notificationsEnabled) return
 
-  const { flashcards } = parseVocabData(result)
+  const { flashcards } = parseVocabData(merged)
   const dueCards = getDueCards(flashcards)
 
   // Only notify if more than 5 cards are due
@@ -246,9 +253,11 @@ export async function initNotifications(): Promise<void> {
   setupAlarmHandler()
   setupNotificationClickHandler()
 
-  // Get settings and schedule reminders
-  const result = await chrome.storage.local.get(['settings-storage'])
-  const settings = parseSettings(result)
+  // Get settings (sync; legacy local fallback) and schedule reminders.
+  const settingsRaw = await getSettingsRaw()
+  const settings = settingsRaw
+    ? parseSettings({ [SETTINGS_KEY]: settingsRaw })
+    : null
 
   if (settings?.notificationsEnabled) {
     await scheduleStudyReminder(settings?.reminderInterval)

@@ -12,12 +12,14 @@ type Settings = {
   reminderInterval?: number
 }
 
+// Settings live in chrome.storage.sync (issue #5: cross-device sync).
 async function seedSettings(s: Settings): Promise<void> {
-  await chrome.storage.local.set({
+  await chrome.storage.sync.set({
     'settings-storage': JSON.stringify({ state: { settings: s } })
   })
 }
 
+// Vocabulary stays in chrome.storage.local.
 async function seedVocab(words: unknown[], flashcards: unknown[]): Promise<void> {
   await chrome.storage.local.set({
     'vocabulary-storage': JSON.stringify({ state: { words, flashcards } })
@@ -25,7 +27,7 @@ async function seedVocab(words: unknown[], flashcards: unknown[]): Promise<void>
 }
 
 function readSnoozeFromStorage(): number | undefined {
-  const calls = vi.mocked(chrome.storage.local.set).mock.calls
+  const calls = vi.mocked(chrome.storage.sync.set).mock.calls
   const last = calls[calls.length - 1]
   const raw = last?.[0] as { 'settings-storage'?: string } | undefined
   if (!raw?.['settings-storage']) return undefined
@@ -65,7 +67,7 @@ describe('handleStudyReminderAlarm', () => {
     expect(chrome.notifications.create).toHaveBeenCalledTimes(1)
 
     // Last storage write must clear the snooze key.
-    const stored = await chrome.storage.local.get(['settings-storage'])
+    const stored = await chrome.storage.sync.get(['settings-storage'])
     const parsed = JSON.parse(stored['settings-storage'])
     expect('studyReminderSnoozeUntil' in parsed.state.settings).toBe(false)
   })
