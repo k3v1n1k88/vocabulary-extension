@@ -83,4 +83,24 @@ describe('buildReminderContent', () => {
     const result = buildReminderContent(3, 0, { ...fullWord, translation: longTranslation })
     expect(result.contextMessage).toBe('á'.repeat(60) + ' · +2 more cards waiting')
   })
+
+  it('strips surrounding slashes from already-wrapped IPA (no //…//)', () => {
+    const result = buildReminderContent(0, 0, { ...fullWord, pronunciation: '/ɪɡˈzæmpəl/' })
+    expect(result.title).toBe('📖 example /ɪɡˈzæmpəl/')
+  })
+
+  it('normalizes square-bracket IPA to slash form', () => {
+    const result = buildReminderContent(0, 0, { ...fullWord, pronunciation: '[ɪɡˈzæmpəl]' })
+    expect(result.title).toBe('📖 example /ɪɡˈzæmpəl/')
+  })
+
+  it('drops IPA when only slashes provided (empty after strip)', () => {
+    const result = buildReminderContent(0, 0, { ...fullWord, pronunciation: '//' })
+    expect(result.title).toBe('📖 example')
+  })
+
+  it('trims whitespace around IPA', () => {
+    const result = buildReminderContent(0, 0, { ...fullWord, pronunciation: '  /ɪɡˈzæmpəl/  ' })
+    expect(result.title).toBe('📖 example /ɪɡˈzæmpəl/')
+  })
 })

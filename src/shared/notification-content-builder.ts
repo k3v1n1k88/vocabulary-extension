@@ -16,12 +16,22 @@ export interface ReminderContent {
   contextMessage?: string
 }
 
+// Free Dictionary API stores phonetics already wrapped (e.g. "/baɪˈlɪŋɡjuəl/"); some sources
+// use [...] brackets. Strip surrounding slashes/brackets and re-wrap consistently with /.../.
+function normalizeIpa(raw: string): string {
+  const trimmed = raw.trim().replace(/^[/[]+|[/\]]+$/g, '')
+  return trimmed ? `/${trimmed}/` : ''
+}
+
 function buildTitle(randomWord?: WordPreview): string {
   if (!randomWord?.word) return FALLBACK_TITLE
   const base = `📖 ${randomWord.word}`
   if (randomWord.pronunciation) {
-    const withIpa = `${base} /${randomWord.pronunciation}/`
-    if (withIpa.length <= TITLE_MAX_LEN) return withIpa
+    const ipa = normalizeIpa(randomWord.pronunciation)
+    if (ipa) {
+      const withIpa = `${base} ${ipa}`
+      if (withIpa.length <= TITLE_MAX_LEN) return withIpa
+    }
   }
   return base
 }
