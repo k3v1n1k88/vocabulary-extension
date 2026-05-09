@@ -40,6 +40,10 @@ export const TOOLTIP_ICONS = {
     <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
     <circle cx="7.5" cy="14.5" r="1.5"/>
     <circle cx="16.5" cy="14.5" r="1.5"/>
+  </svg>`,
+  close: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
   </svg>`
 }
 
@@ -147,6 +151,15 @@ export function createSettingsButtonHtml(label = 'Check Settings'): string {
   return `<button class="vocab-settings-btn">
     ${TOOLTIP_ICONS.settings}
     ${label}
+  </button>`
+}
+
+/**
+ * Create close (X) button HTML for manual tooltip dismiss.
+ */
+export function createCloseButtonHtml(): string {
+  return `<button type="button" class="vocab-close-btn" aria-label="Close" title="Close (Esc)">
+    ${TOOLTIP_ICONS.close}
   </button>`
 }
 

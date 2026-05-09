@@ -15,7 +15,8 @@ import {
   createAudioButtonHtml,
   createCopyIconButtonHtml,
   createSaveButtonHtml,
-  createAiBadgeHtml
+  createAiBadgeHtml,
+  createCloseButtonHtml
 } from './tooltip-shared-elements'
 export { createErrorHTML } from './tooltip-error-template'
 
@@ -63,6 +64,7 @@ export function createTooltipHTML(word: Word): string {
 
   return `
     <div class="vocab-tooltip-content">
+      ${createCloseButtonHtml()}
       <div class="vocab-header">
         <div class="vocab-word-row">
           <span class="vocab-word">${escapeHtml(word.word)}</span>
@@ -113,6 +115,7 @@ export function createTranslationTooltipHTML(translation: TranslationResult, cac
 
   return `
     <div class="vocab-tooltip-content vocab-translation">
+      ${createCloseButtonHtml()}
       <div class="vocab-header">
         <div class="vocab-word-row">
           <span class="vocab-word">${escapeHtml(translation.originalText)}</span>
@@ -151,6 +154,7 @@ export function createLoadingHTML(text: string, isPhrase: boolean, isLLMEnabled:
 
   return `
     <div class="vocab-tooltip-content">
+      ${createCloseButtonHtml()}
       <div class="vocab-header">
         <div class="vocab-word-row">
           <span class="vocab-word">${escapeHtml(displayText)}</span>

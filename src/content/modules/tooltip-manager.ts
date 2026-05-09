@@ -1,3 +1,4 @@
+/* global DOMRect */
 /**
  * Tooltip Manager Module
  * Orchestrates tooltip display using positioning and event handler modules.
@@ -7,39 +8,30 @@ import type { Word, TranslationResult } from '@/types'
 import { createTooltipHTML, createTranslationTooltipHTML, createLoadingHTML, createErrorHTML } from './tooltip-templates'
 import { getTargetLanguage, isLLMTranslationEnabled } from './settings-manager'
 import { clearSavedTooltipPosition } from './floating-menu'
-import { getFinalTooltipPosition, type TooltipPosition } from './tooltip-positioning'
+import {
+  getFinalTooltipPosition,
+  measureAndAdjustVertical,
+  type TooltipPosition
+} from './tooltip-positioning'
 import {
   initEventHandlers,
-  setupOutsideClickHandler,
+  setupCloseButtonHandler,
+  setupEscapeKeyHandler,
   setupWordTooltipEvents,
   setupTranslationTooltipEvents,
   setupErrorTooltipEvents
 } from './tooltip-event-handlers'
 
-// Tooltip element reference
 let tooltip: HTMLDivElement | null = null
+let cleanups: Array<() => void> = []
+let currentSelectionRect: DOMRect | null = null
 
-// Cleanup function for outside click handler
-let cleanupOutsideClick: (() => void) | null = null
+initEventHandlers(getTooltip, removeTooltip, showLoadingTooltip, updateTooltipWithTranslation)
 
-// Initialize event handlers with callbacks
-initEventHandlers(
-  getTooltip,
-  removeTooltip,
-  showLoadingTooltip,
-  updateTooltipWithTranslation
-)
-
-/**
- * Get tooltip element reference.
- */
 export function getTooltip(): HTMLDivElement | null {
   return tooltip
 }
 
-/**
- * Create tooltip element with standard styling.
- */
 function createTooltipElement(html: string, position: TooltipPosition): HTMLDivElement {
   const el = document.createElement('div')
   el.id = 'vocabulary-tooltip'
@@ -53,125 +45,87 @@ function createTooltipElement(html: string, position: TooltipPosition): HTMLDivE
   return el
 }
 
-/**
- * Setup common tooltip behavior (append to DOM, outside click).
- */
 function mountTooltip(el: HTMLDivElement): void {
   tooltip = el
   document.body.appendChild(tooltip)
-  cleanupOutsideClick = setupOutsideClickHandler()
+  cleanups = [setupCloseButtonHandler(), setupEscapeKeyHandler()]
+  measureAndAdjustVertical(el, currentSelectionRect)
 }
 
 /**
- * Show loading tooltip immediately.
+ * Resolve position + selectionRect, cache the rect for re-measurement,
+ * and remove any existing tooltip before mounting a fresh one.
  */
-export function showLoadingTooltip(text: string, isPhrase: boolean): void {
-  // Get position BEFORE removeTooltip clears it
-  const position = getFinalTooltipPosition(false)
-
+function preparePosition(isTranslation: boolean): TooltipPosition {
+  const { position, selectionRect } = getFinalTooltipPosition(isTranslation)
+  currentSelectionRect = selectionRect
   removeTooltip()
-
-  const html = createLoadingHTML(text, isPhrase, isLLMTranslationEnabled())
-  const el = createTooltipElement(html, position)
-
-  mountTooltip(el)
+  return position
 }
 
-/**
- * Update existing tooltip with word data (no position change).
- */
+export function showLoadingTooltip(text: string, isPhrase: boolean): void {
+  const position = preparePosition(false)
+  const html = createLoadingHTML(text, isPhrase, isLLMTranslationEnabled())
+  mountTooltip(createTooltipElement(html, position))
+}
+
 export function updateTooltipWithWord(word: Word): void {
   if (!tooltip) {
     showTooltip(word)
     return
   }
-
   tooltip.innerHTML = createTooltipHTML(word)
   setupWordTooltipEvents(word)
+  measureAndAdjustVertical(tooltip, currentSelectionRect)
 }
 
-/**
- * Update existing tooltip with translation (no position change).
- */
 export function updateTooltipWithTranslation(translation: TranslationResult): void {
   if (!tooltip) {
     showTranslationTooltip(translation)
     return
   }
-
   tooltip.innerHTML = createTranslationTooltipHTML(translation, getTargetLanguage())
   setupTranslationTooltipEvents(translation)
+  measureAndAdjustVertical(tooltip, currentSelectionRect)
 }
 
-/**
- * Create and show tooltip with word data.
- */
 export function showTooltip(word: Word): void {
-  // Get position BEFORE removeTooltip clears it
-  const position = getFinalTooltipPosition(false)
-
-  removeTooltip()
-
-  const html = createTooltipHTML(word)
-  const el = createTooltipElement(html, position)
-
-  mountTooltip(el)
+  const position = preparePosition(false)
+  mountTooltip(createTooltipElement(createTooltipHTML(word), position))
   setupWordTooltipEvents(word)
 }
 
-/**
- * Show translation tooltip for phrases.
- */
 export function showTranslationTooltip(translation: TranslationResult): void {
-  // Get position BEFORE removeTooltip clears it
-  const position = getFinalTooltipPosition(true)
-
-  removeTooltip()
-
+  const position = preparePosition(true)
   const html = createTranslationTooltipHTML(translation, getTargetLanguage())
-  const el = createTooltipElement(html, position)
-
-  mountTooltip(el)
+  mountTooltip(createTooltipElement(html, position))
   setupTranslationTooltipEvents(translation)
 }
 
-/**
- * Show error tooltip.
- */
 export function showErrorTooltip(message: string): void {
-  // If tooltip already exists (loading state), reuse its position
+  // If a tooltip already exists (e.g. loading), reuse its position
   if (tooltip) {
     const existingLeft = tooltip.style.left
     const existingTop = tooltip.style.top
-
     tooltip.innerHTML = createErrorHTML(message)
     tooltip.style.left = existingLeft
     tooltip.style.top = existingTop
-
     setupErrorTooltipEvents(message)
+    measureAndAdjustVertical(tooltip, currentSelectionRect)
     return
   }
-
-  // No existing tooltip - create one
-  const position = getFinalTooltipPosition(false)
-  const html = createErrorHTML(message)
-  const el = createTooltipElement(html, position)
-
-  mountTooltip(el)
+  const position = preparePosition(false)
+  mountTooltip(createTooltipElement(createErrorHTML(message), position))
   setupErrorTooltipEvents(message)
 }
 
-/**
- * Remove tooltip and cleanup.
- */
 export function removeTooltip(): void {
   if (tooltip) {
     tooltip.remove()
     tooltip = null
   }
-  if (cleanupOutsideClick) {
-    cleanupOutsideClick()
-    cleanupOutsideClick = null
-  }
+  cleanups.forEach(fn => fn())
+  cleanups = []
+  currentSelectionRect = null
   clearSavedTooltipPosition()
 }

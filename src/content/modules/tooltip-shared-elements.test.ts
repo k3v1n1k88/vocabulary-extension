@@ -11,6 +11,7 @@ import {
   createSaveButtonHtml,
   createSettingsButtonHtml,
   createErrorCodeBadgeHtml,
+  createCloseButtonHtml,
   TOOLTIP_ICONS
 } from './tooltip-shared-elements'
 
@@ -24,6 +25,18 @@ describe('TOOLTIP_ICONS', () => {
     expect(TOOLTIP_ICONS.error).toContain('<svg')
     expect(TOOLTIP_ICONS.chevronDown).toContain('<svg')
     expect(TOOLTIP_ICONS.robot).toContain('<svg')
+    expect(TOOLTIP_ICONS.close).toContain('<svg')
+  })
+})
+
+describe('createCloseButtonHtml', () => {
+  it('renders an accessible close button', () => {
+    const html = createCloseButtonHtml()
+    expect(html).toContain('vocab-close-btn')
+    expect(html).toContain('aria-label="Close"')
+    expect(html).toContain('type="button"')
+    expect(html).toContain('title="Close (Esc)"')
+    expect(html).toContain('<svg')
   })
 })
 
