@@ -29,7 +29,7 @@ export interface UseApiKeyManagementReturn {
   handleSaveApiKey: () => Promise<void>
   handleClearApiKey: () => Promise<void>
   handleTestConnection: () => Promise<void>
-  handleProviderChange: (provider: LLMProvider, updateSettings: (updates: { llmProvider: LLMProvider }) => void) => void
+  handleProviderChange: (provider: LLMProvider, updateSettings: (updates: { llmProvider: LLMProvider; llmModel: string }) => void) => void
 }
 
 /**
@@ -43,7 +43,8 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
   const [providerApiKeys, setProviderApiKeys] = useState<Record<LLMProvider, ApiKeyState>>({
     openai: { value: '', saved: false },
     gemini: { value: '', saved: false },
-    grok: { value: '', saved: false }
+    grok: { value: '', saved: false },
+    openrouter: { value: '', saved: false }
   })
   const [testResult, setTestResult] = useState<TestResult>({ status: 'idle' })
 
@@ -173,9 +174,12 @@ export function useApiKeyManagement(currentProviderId: LLMProvider = 'openai'): 
 
   const handleProviderChange = (
     provider: LLMProvider,
-    updateSettings: (updates: { llmProvider: LLMProvider }) => void
+    updateSettings: (updates: { llmProvider: LLMProvider; llmModel: string }) => void
   ) => {
-    updateSettings({ llmProvider: provider })
+    // Reset the selected model to the new provider's default so the dropdown and
+    // saved value never carry a foreign model ID from the previous provider.
+    const { defaultModel } = getProviderConfig(provider)
+    updateSettings({ llmProvider: provider, llmModel: defaultModel })
     setTestResult({ status: 'idle' })
   }
 

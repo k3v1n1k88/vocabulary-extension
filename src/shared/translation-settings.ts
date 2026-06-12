@@ -14,6 +14,7 @@ import { getSettings } from './settings-storage-access'
 
 interface TranslationSettings {
   llmProvider?: LLMProvider
+  llmModel?: string
   targetLanguage?: string
   sourceLanguage?: string
   useLLMTranslation?: boolean
@@ -55,6 +56,23 @@ export async function saveApiKey(apiKey: string, provider: LLMProvider = 'openai
 export async function getSelectedProvider(): Promise<LLMProvider> {
   const settings = await getSettings<TranslationSettings>()
   return settings?.llmProvider || 'openai'
+}
+
+/**
+ * Resolve the model to send to the provider.
+ *
+ * Returns the user-selected model only when it belongs to the given provider's
+ * own model list; otherwise falls back to the provider default. This prevents
+ * sending a foreign model ID left over from a previous provider selection, and
+ * keeps behavior unchanged when no model has been chosen.
+ */
+export async function getSelectedModel(provider: LLMProvider): Promise<string> {
+  const settings = await getSettings<TranslationSettings>()
+  const config = getProviderConfig(provider)
+  const selected = settings?.llmModel
+  return selected && config.models.some(m => m.id === selected)
+    ? selected
+    : config.defaultModel
 }
 
 /**

@@ -12,6 +12,7 @@ import { translateWithFreeApi } from './free-translation-api'
 import {
   getApiKey,
   getSelectedProvider,
+  getSelectedModel,
   getTargetLanguage,
   getTargetLanguageCode,
   getSourceLanguageCode,
@@ -45,12 +46,13 @@ export async function testConnection(provider: LLMProvider, apiKey: string): Pro
   }
 
   const config = getProviderConfig(provider)
+  const model = await getSelectedModel(provider)
   const testPrompt = { system: 'Reply only with: OK', user: 'Test' }
 
   const { url, options } = buildProviderRequest(
     provider,
     config.endpoint,
-    config.defaultModel,
+    model,
     apiKey,
     testPrompt.system,
     testPrompt.user
@@ -106,6 +108,7 @@ export async function translateText(
   // LLM translation flow
   const provider = await getSelectedProvider()
   const config = getProviderConfig(provider)
+  const model = await getSelectedModel(provider)
   const apiKey = await getApiKey(provider)
 
   // Show error if AI enabled but no API key
@@ -120,7 +123,7 @@ export async function translateText(
   const { url, options } = buildProviderRequest(
     provider,
     config.endpoint,
-    config.defaultModel,
+    model,
     apiKey,
     system,
     user
