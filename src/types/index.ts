@@ -52,7 +52,7 @@ export interface Achievement {
 }
 
 // LLM Provider types
-export type LLMProvider = 'openai' | 'gemini' | 'grok'
+export type LLMProvider = 'openai' | 'gemini' | 'grok' | 'openrouter'
 
 export interface ModelInfo {
   id: string

@@ -98,7 +98,7 @@ export function buildGeminiRequest(
  * Build provider-specific request based on provider type.
  */
 export function buildProviderRequest(
-  provider: 'openai' | 'grok' | 'gemini',
+  provider: 'openai' | 'grok' | 'gemini' | 'openrouter',
   endpoint: string,
   model: string,
   apiKey: string,

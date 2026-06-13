@@ -49,8 +49,20 @@ export function ErrorState({ message, onConfigureApiKey, onEnableAiMode }: Error
   const lowerMessage = message.toLowerCase()
   const isQueryLengthError = message.includes('QUERY LENGTH LIMIT')
   const isApiKeyError = lowerMessage.includes('api key not configured') || lowerMessage.includes('key is required')
-  const isApiError = lowerMessage.includes('api error') ||
-    message.includes(': 400') || message.includes(': 401') || message.includes(': 500')
+  // Unavailable / deprecated / unknown model — provider wording varies, match loosely,
+  // but require "model" so generic API errors (feature/param not supported, endpoint 404)
+  // aren't misclassified. Provider model-not-found errors reliably mention "model".
+  const isModelError = !isApiKeyError && lowerMessage.includes('model') && (
+    lowerMessage.includes('no longer available') ||
+    lowerMessage.includes('not available') ||
+    lowerMessage.includes('does not exist') ||
+    lowerMessage.includes('not found') ||
+    lowerMessage.includes('is not supported') ||
+    lowerMessage.includes('decommissioned') ||
+    lowerMessage.includes('deprecated')
+  )
+  const isApiError = !isModelError && (lowerMessage.includes('api error') ||
+    message.includes(': 400') || message.includes(': 401') || message.includes(': 500'))
 
   // Parse error for cleaner display
   const { provider } = parseErrorMessage(message)
@@ -97,6 +109,34 @@ export function ErrorState({ message, onConfigureApiKey, onEnableAiMode }: Error
         <div className="mb-3 p-3 bg-white border border-red-100 rounded-lg">
           <p className="text-xs text-gray-600 leading-relaxed">
             {provider ? `${provider} API key is not configured.` : 'API key is not configured.'} Add your key in Settings or disable AI translation.
+          </p>
+        </div>
+        {onConfigureApiKey && (
+          <button
+            onClick={onConfigureApiKey}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <SettingsIcon />
+            Check Settings
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // Model unavailable (red theme) - deprecated/removed/unknown model
+  if (isModelError) {
+    return (
+      <div className="m-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center justify-center w-9 h-9 bg-red-100 rounded-full text-red-600 flex-shrink-0">
+            <ErrorIcon />
+          </div>
+          <span className="text-sm font-semibold text-red-700">Model Unavailable</span>
+        </div>
+        <div className="mb-3 p-3 bg-white border border-red-100 rounded-lg">
+          <p className="text-xs text-gray-700 leading-relaxed break-words">
+            {message} Choose a different model in Settings.
           </p>
         </div>
         {onConfigureApiKey && (
